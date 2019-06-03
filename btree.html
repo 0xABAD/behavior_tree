@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Behavior Trees</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.cyan-amber.min.css" /> 
+  <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+  <script defer src="https://d3js.org/d3.v5.min.js"></script>
+  <script defer src="btree.js"></script>
+  <style>
+    body { height: 98vh; }
+    main { height: 100%; }
+    .mdl-layout__drawer.is-visible { width: 350px; }
+    .mdl-navigation__link {
+        padding-left: 30px !important;
+        padding-right: 20px !important;
+    }
+    .tree-action {
+        display: flex !important;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .mdl-button--fab.tree-action--mini-fab {
+        height: 30px;
+        width: 30px;
+        min-width: 30px;
+        font-size: 20px;
+        margin: 0px 4px;
+    }
+    .tree-action--success { background: #4FC04F; } 
+    .tree-action--failure { background: #F59A9A; }
+    .tree-action--running { background: #59ABF0; }
+  </style>
+</head>
+<body>
+  <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
+    <header class="mdl-layout__header">
+      <div class="mdl-layout__header-row">
+        <span class="mdl-layout-title">Behavior Tree</span>
+        <!-- Add spacer, to align any items to the right -->
+        <div class="mdl-layout-spacer"></div>
+        <input type="file" id="treeFileInput" style="display:none" accept="*.tree" class="visually-hidden">
+        <button id="treeFileSelect"
+                class="mdl-button
+                       mdl-js-button
+                       mdl-button--raised
+                       mdl-js-ripple-effect
+                       mdl-button--accent">
+          Load Tree
+        </button>
+      </div>
+    </header>
+    <div class="mdl-layout__drawer tree-drawer">
+      <span class="mdl-layout-title">Conditions</span>
+      <nav id="tree-conditions" class="mdl-navigation">
+      </nav>
+      <span class="mdl-layout-title">Actions</span>
+      <nav id="tree-actions" class="mdl-navigation">
+      </nav>
+    </div>
+    <main class="mdl-layout__content"></main>
+  </div>
+</body>
+</html>
