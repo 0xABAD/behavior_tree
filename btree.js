@@ -115,7 +115,12 @@ function sequence() {
     return seq;
 }
 
-function action(name)    { return node(name, 'action'); }
+function action(name) {
+    let a = node(name, 'action');
+    a.status = RUNNING;
+    return a;
+}
+
 function condition(name) { return node(name, 'condition'); }
 
 function parse(buf) {
@@ -448,7 +453,6 @@ function loadTree(str) {
     let actionBtns = actions.append('div');
 
     let clear = actionBtns.append('button')
-        .attr('disabled', true)
         .classed(BTN_CLASS, true)
         .classed('tree-action--failure', true)
         .on('click', function(name) {
@@ -465,7 +469,6 @@ function loadTree(str) {
     });
 
     let add = actionBtns.append('button')
-        .attr('disabled', true)
         .classed(BTN_CLASS, true)
         .classed('tree-action--success', true)
         .on('click', function(name) {
@@ -482,7 +485,6 @@ function loadTree(str) {
     });
 
     let run = actionBtns.append('button')
-        .attr('disabled', true)
         .classed(BTN_CLASS, true)
         .classed('tree-action--running', true)
         .on('click', function(name) {
@@ -501,29 +503,6 @@ function loadTree(str) {
     function render() {
         root.data.deactivate();
         root.data.tick();
-        for (let name in result.actions) {
-            let disabled = true;
-            result.actions[name].forEach(a => {
-                if (a.active) {
-                    disabled = null;
-                }
-            });
-            run.each(function(n) {
-                if (n == name) {
-                    d3.select(this).attr('disabled', disabled);
-                }
-            });
-            add.each(function(n) {
-                if (n == name) {
-                    d3.select(this).attr('disabled', disabled);
-                }
-            });
-            clear.each(function(n) {
-                if (n == name) {
-                    d3.select(this).attr('disabled', disabled);
-                }
-            });
-        }
         renderTree('main', root, width, x0, x1);
     }
     render();
