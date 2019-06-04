@@ -381,6 +381,26 @@ function renderTree(parent, root, width, x0, x1) {
     });
 }
 
+function clamp(val, min, max) {
+    if (val < min) {
+        return min;
+    }
+    if (val > max) {
+        return max;
+    }
+    return val;
+}
+
+function windowSize() {
+    let w = window,
+        d = document,
+        e = d.documentElement,
+        g = d.getElementsByTagName('body')[0],
+        x = w.innerWidth || e.clientWidth || g.clientWidth,
+        y = w.innerHeight || e.clientHeight || g.clientHeight;
+    return [x, y];
+}
+
 // LoadTree parses _str_ into a root tree node and renders it.
 function loadTree(str) {
     let result = parse(str),
@@ -390,21 +410,55 @@ function loadTree(str) {
         return;
     }
 
-    const width     = 1000,
-          svgParent = 'main';
+    const svgParent = 'main';
 
     let x0   = Infinity,
         x1   = -x0,
-        data = d3.hierarchy(result.root);
+        data = d3.hierarchy(result.root),
+        root = undefined,
+        horizontal_stretch = 0,
+        vertical_stretch   = 8,
+        [width, height]    = windowSize();
 
-    data.dx = 8;
-    data.dy = width / (data.height + 3);
+    function resizeRoot() {
+        data.dx = vertical_stretch;
+        data.dy = (width + horizontal_stretch) / (data.height + 3);
 
-    let root = d3.tree().nodeSize([4*data.dx, data.dy])(data);
-    root.each(d => {
-        if (d.x > x1) x1 = d.x;
-        if (d.x < x0) x0 = d.x;
+        root = d3.tree().nodeSize([4*data.dx, data.dy])(data);
+        root.each(d => {
+            if (d.x > x1) x1 = d.x;
+            if (d.x < x0) x0 = d.x;
+        });
+    }
+    resizeRoot();
+
+    window.addEventListener('resize', function() {
+        [width, height] = windowSize();
+        resizeRoot();
+        render();
     });
+
+    d3.select('body')
+        .on('wheel', function() {
+            let e = d3.event;
+            let up = false;
+
+            if (e.deltaY == 0) {
+                return;
+            }
+            if (e.deltaY < 0) {
+                up = true;
+            }
+            if (e.shiftKey) {
+                horizontal_stretch += up ? 30 : -30;
+                horizontal_stretch = clamp(horizontal_stretch, -width*0.6, 1000.0);
+            } else if (e.ctrlKey) {
+                vertical_stretch += up ? 1 : -1;
+                vertical_stretch = clamp(vertical_stretch, 6, 1000);
+            }
+            resizeRoot();
+            render();
+        });
 
     let conds = d3.select('#tree-conditions')
         .html('')
