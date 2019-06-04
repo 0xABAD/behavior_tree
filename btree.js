@@ -357,7 +357,7 @@ function renderTree(parent, root, width, x0, x1) {
             let text = d3.select(this)
                 .append('text')
                 .attr('dy', '0.31em')
-                .attr('text-anchor', 'middle')
+                .attr('text-anchor', 'start')
                 .attr('fill', text_color)
                 .text(d.data.name)
                 .clone(true).lower()
@@ -366,13 +366,14 @@ function renderTree(parent, root, width, x0, x1) {
             let width = text.getComputedTextLength() + PAD;
             if (k == 'condition') {
                 container
+                    .attr('cx', width/2.0 - PAD/2.0)
                     .attr('rx', width/1.75)
                     .attr('ry', '1.0em');
             }
             if (k == 'action') {
                 container
                     .attr('y', '-0.85em')
-                    .attr('x', -width/2.0)
+                    .attr('x', -PAD/2.0)
                     .attr('width', width)
                     .attr('height', '1.75em');
             }
