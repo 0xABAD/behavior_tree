@@ -243,6 +243,12 @@ function parse(buf) {
 // of _width_.  _x0_ and _x1_ are used to determine the vertical height
 // of the tree inside the viewbox.
 function renderTree(parent, root, width, x0, x1) {
+    function translate(tree) {
+        let x = tree.dy + tree.drag_dx,
+            y = tree.dx - x0 + tree.drag_dy;
+        return `translate(${x}, ${y})`;
+    }
+
     const svg = d3.select(parent)
           .html('')
           .append('svg')
@@ -253,7 +259,13 @@ function renderTree(parent, root, width, x0, x1) {
     const g = svg.append('g')
           .attr('font-family', 'sans-serif')
           .attr('font-size', 12)
-          .attr('transform', `translate(${root.dy}, ${root.dx - x0})`);
+          .attr('transform', translate(root));
+
+    svg.call(d3.drag().on('drag.svg', function() {
+        root.drag_dy += d3.event.dy;
+        root.drag_dx += d3.event.dx;
+        g.attr('transform', translate(root));
+    }));
     
     const link = g.append('g')
           .attr('fill', 'none')
@@ -419,6 +431,9 @@ function loadTree(str) {
         horizontal_stretch = 0,
         vertical_stretch   = 8,
         [width, height]    = windowSize();
+
+    data.drag_dx = 0;
+    data.drag_dy = 0;
 
     function resizeRoot() {
         data.dx = vertical_stretch;
