@@ -464,12 +464,12 @@ function loadTree(str) {
             if (e.deltaY < 0) {
                 up = true;
             }
-            if (e.shiftKey) {
-                horizontal_stretch += up ? 30 : -30;
-                horizontal_stretch = clamp(horizontal_stretch, -width*0.6, 1000.0);
-            } else if (e.ctrlKey) {
+            if (e.shiftKey && e.ctrlKey) {
                 vertical_stretch += up ? 1 : -1;
                 vertical_stretch = clamp(vertical_stretch, 6, 1000);
+            } else if (e.shiftKey) {
+                horizontal_stretch += up ? 30 : -30;
+                horizontal_stretch = clamp(horizontal_stretch, -width*0.6, 1000.0);
             }
             resizeRoot();
             render();
