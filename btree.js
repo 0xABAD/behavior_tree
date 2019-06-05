@@ -463,7 +463,13 @@ function loadTree(str) {
     let result = parse(str),
         line   = result.line;
     if (result.error) {
-        console.error(`Line ${line}: ${result.error}`);
+        d3.select('main')
+            .html('')
+            .append('div')
+            .classed('tree-error__container', true)
+            .append('span')
+            .classed('tree-error__text', true)
+            .text(`Line ${line}: ${result.error}`);
         return;
     }
 
