@@ -246,7 +246,7 @@ function renderTree(parent, root, width, x0, x1) {
     function translate(tree) {
         let x = tree.dy + tree.drag_dx,
             y = tree.dx - x0 + tree.drag_dy;
-        return `translate(${x}, ${y})`;
+        return `translate(${x}, ${y}) scale(${root.scale})`;
     }
 
     const svg = d3.select(parent)
@@ -422,8 +422,6 @@ function loadTree(str) {
         return;
     }
 
-    const svgParent = 'main';
-
     let x0   = Infinity,
         x1   = -x0,
         data = d3.hierarchy(result.root),
@@ -434,6 +432,7 @@ function loadTree(str) {
 
     data.drag_dx = 0;
     data.drag_dy = 0;
+    data.scale = 1;
 
     function resizeRoot() {
         data.dx = vertical_stretch;
@@ -453,7 +452,7 @@ function loadTree(str) {
         render();
     });
 
-    d3.select('body')
+    d3.select('main')
         .on('wheel', function() {
             let e = d3.event;
             let up = false;
@@ -470,6 +469,9 @@ function loadTree(str) {
             } else if (e.shiftKey) {
                 horizontal_stretch += up ? 30 : -30;
                 horizontal_stretch = clamp(horizontal_stretch, -width*0.6, 1000.0);
+            } else {
+                data.scale += up ? 0.10 : -0.10;
+                data.scale = clamp(data.scale, 0.10, 100.0);
             }
             resizeRoot();
             render();
