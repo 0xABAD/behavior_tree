@@ -15,8 +15,9 @@ const SAMPLE_TREE = `
 |    |    |    |    (Ghost Scared)
 |    |    |    |    [Chase Ghost]
 |    |    |    [Avoid Ghost]
-|    ?
+|    =1
 |    |    [Eat Pills]
+|    |    [Eat Fruit]
 `;
 
 function expect(what, have) {
@@ -63,6 +64,28 @@ function parseAction(buf, i) {
         }
     }
     return [i, action, expect(']', 'EOF')];
+}
+
+function parseParallel(buf, i) {
+    let num = '';
+    while (i < buf.length) {
+        let ch = buf[i];
+        let m = ch.match(/\d/);
+        if (m && m.length == 1) {
+            num += ch;
+        } else {
+            break;
+        }
+        i++;
+    }
+    if (num == '') {
+        return [0, i, 'Expecting number after parallel node.'];
+    }
+    num = parseInt(num);
+    if (num == 0) {
+        return [0, i, 'Parallel node must allow at least one child.'];
+    }
+    return [num, i, null];
 }
 
 function node(name, kind, kids) {
@@ -134,6 +157,37 @@ function sequence() {
     return seq;
 }
 
+function parallel(successCount) {
+    let par = node('=', 'parallel', []);
+    par.tick = function() {
+        par.active = true;
+
+        let succeeded = 0,
+            failed    = 0,
+            kidCount  = par.children.length;
+
+        for (let i = 0; i < par.children.length; i++) {
+            let s = par.children[i].tick();
+            if (s == SUCCESS) {
+                succeeded++;
+            }
+            if (s == FAILED) {
+                failed++;
+            }
+        }
+
+        let st = RUNNING;
+        if (succeeded >= successCount) {
+            st = SUCCESS;
+        } else if (failed > kidCount - successCount) {
+            st = FAILED;
+        }
+        par.setStatus(st);
+        return st;
+    };
+    return par;
+}
+
 function action(name) {
     let a = node(name, 'action');
     a.setStatus(RUNNING);
@@ -161,7 +215,7 @@ function parse(buf) {
                 parent.children.push(node);
                 nodes[indent] = node;
             } else {
-                return `${parent.kind} can't have child nodes`;
+                return `${parent.kind} node can't have child nodes`;
             }
         } else {
             nodes[indent] = node;
@@ -199,6 +253,19 @@ function parse(buf) {
             } else {
                 notNow = true;
                 notPending = true;
+            }
+        } break;
+
+        case '=': {
+            let [num, n, err] = parseParallel(buf, i);
+            if (err) {
+                return onError(err);
+            }
+            i = n;
+            let p = parallel(num);
+            let e = pushNode(p);
+            if (e) {
+                return onError(e);
             }
         } break;
 
@@ -350,7 +417,7 @@ function renderTree(parent, root, width, x0, x1) {
         let active = d.data.active,
             k      = d.data.kind;
 
-        if (k == 'sequence' || k == 'fallback') {
+        if (k == 'sequence' || k == 'fallback' || k == 'parallel') {
             let color      = nodeColor(active, d.data.status()),
                 fill       = 'white',
                 text_color = 'black';
