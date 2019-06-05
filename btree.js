@@ -5,13 +5,18 @@ const FAILED  = 0,
 const SAMPLE_TREE = `
 ?
 |    ->
-|    |     (Ghost Close)
-|    |     ?
-|    |     |    ->
-|    |     |    |    (Ghost Scared)
-|    |     |    |    [Chase Ghost]
-|    |     |    [Avoid Ghost]
-|    [Eat Pills]
+|    |    (Ghost Close)
+|    |    ?
+|    |    |    ->
+|    |    |    |    !(Ghost Scared)
+|    |    |    |    (Power Pill Close)
+|    |    |    |    [Eat Power Pill]
+|    |    |    ->
+|    |    |    |    (Ghost Scared)
+|    |    |    |    [Chase Ghost]
+|    |    |    [Avoid Ghost]
+|    ?
+|    |    [Eat Pills]
 `;
 
 function expect(what, have) {
@@ -65,12 +70,24 @@ function node(name, kind, kids) {
     n.name = name;
     n.kind = kind;
     n.children = kids || null;
-    n.status = FAILED;
     n.active = false;
     n.wasActive = false;
+    n.nodeStatus = FAILED;
+    n.status = function() {
+        if (n.hasNot) {
+            switch (n.nodeStatus) {
+            case SUCCESS: return FAILED;
+            case FAILED:  return SUCCESS;
+            }
+        }
+        return n.nodeStatus;
+    };
+    n.setStatus = function(s) {
+        n.nodeStatus = s;
+    };
     n.tick = function() {
         n.active = true;
-        return n.status;
+        return n.status();
     };
     n.deactivate = function() {
         n.active = false;
@@ -88,13 +105,14 @@ function fallback() {
     fb.tick = function() {
         fb.active = true;
         for (let i = 0; i < fb.children.length; i++) {
-            fb.status = fb.children[i].tick();
-            if (fb.status == RUNNING || fb.status == SUCCESS) {
-                return fb.status;
+            let s = fb.children[i].tick();
+            fb.setStatus(s);
+            if (s == RUNNING || s == SUCCESS) {
+                return fb.status();
             }
         }
-        fb.status = FAILED;
-        return fb.status;
+        fb.setStatus(FAILED);
+        return fb.status();
     };
     return fb;
 }
@@ -104,20 +122,21 @@ function sequence() {
     seq.tick = function() {
         seq.active = true;
         for (let i = 0; i < seq.children.length; i++) {
-            seq.status = seq.children[i].tick();
-            if (seq.status == RUNNING || seq.status == FAILED) {
-                return seq.status;
+            let s = seq.children[i].tick();
+            seq.setStatus(s);
+            if (s == RUNNING || s == FAILED) {
+                return seq.status();
             }
         }
-        seq.status = SUCCESS;
-        return seq.status;
+        seq.setStatus(SUCCESS);
+        return seq.status();
     };
     return seq;
 }
 
 function action(name) {
     let a = node(name, 'action');
-    a.status = RUNNING;
+    a.setStatus(RUNNING);
     return a;
 }
 
@@ -129,6 +148,7 @@ function parse(buf) {
         nodes      = [null], // node tree
         actions    = {},     // unique action nodes
         conditions = {},     // unique condition nodes
+        notPending = false,  // is 'not' decorator waiting to be applied?
         i          = 0;
 
     function pushNode(node) {
@@ -155,7 +175,8 @@ function parse(buf) {
     }
 
     while (i < buf.length) {
-        let ch = buf[i];
+        let ch     = buf[i],
+            notNow = false;
         i++;
 
         switch (ch) {
@@ -169,6 +190,16 @@ function parse(buf) {
 
         case '|': {
             indent++;
+        } break;
+
+        case '!': {
+            if (notPending) {
+                // Not operator cancels itself out.
+                notPending = false;
+            } else {
+                notNow = true;
+                notPending = true;
+            }
         } break;
 
         case '?': {
@@ -202,6 +233,10 @@ function parse(buf) {
             } else {
                 conditions[name] = [c];
             }
+            if (notPending) {
+                notPending = false;
+                c.hasNot = true;
+            }
             let e = pushNode(c);
             if (e) {
                 return onError(e);
@@ -227,9 +262,15 @@ function parse(buf) {
         } break;
 
         default:
-            let err = `Expecting '|', '-', '[', or '(' but have '${ch}'`;
+            let err = `Expecting '|', '-', '!', '[', or '(' but have '${ch}'`;
             return onError(err);
         }
+
+        if (!notNow && notPending) {
+            let err = 'Not operator can only be applied to conditions';
+            return onError(err);
+        }
+        notNow = false;
     }
     if (!nodes[0]) {
         let e = 'Tree must have at least one node but has none';
@@ -310,7 +351,7 @@ function renderTree(parent, root, width, x0, x1) {
             k      = d.data.kind;
 
         if (k == 'sequence' || k == 'fallback') {
-            let color      = nodeColor(active, d.data.status),
+            let color      = nodeColor(active, d.data.status()),
                 fill       = 'white',
                 text_color = 'black';
 
@@ -343,7 +384,7 @@ function renderTree(parent, root, width, x0, x1) {
 
         if (k == 'condition' || k == 'action') {
             let container,
-                color      = nodeColor(active, d.data.status),
+                color      = nodeColor(active, d.data.status()),
                 fill       = 'white',
                 text_color = 'black';
 
@@ -366,12 +407,16 @@ function renderTree(parent, root, width, x0, x1) {
             
             const PAD = 10;
 
+            let name = d.data.name;
+            if (d.data.hasNot) {
+                name = '!' + name;
+            }
             let text = d3.select(this)
                 .append('text')
                 .attr('dy', '0.31em')
                 .attr('text-anchor', 'start')
                 .attr('fill', text_color)
-                .text(d.data.name)
+                .text(name)
                 .clone(true).lower()
                 .node();
 
@@ -494,7 +539,7 @@ function loadTree(str) {
         .classed('mdl-switch__input', true)
         .on('change', function(name) {
             let s = d3.event.target.checked ? SUCCESS : FAILED;
-            result.conditions[name].forEach(c => c.status = s);
+            result.conditions[name].forEach(c => c.setStatus(s));
             render();
         });
     condLabels
@@ -528,7 +573,7 @@ function loadTree(str) {
         .classed(BTN_CLASS, true)
         .classed('tree-action--failure', true)
         .on('click', function(name) {
-            result.actions[name].forEach(a => a.status = FAILED);
+            result.actions[name].forEach(a => a.setStatus(FAILED));
             render();
         });
     clear
@@ -544,7 +589,7 @@ function loadTree(str) {
         .classed(BTN_CLASS, true)
         .classed('tree-action--success', true)
         .on('click', function(name) {
-            result.actions[name].forEach(a => a.status = SUCCESS);
+            result.actions[name].forEach(a => a.setStatus(SUCCESS));
             render();
         });
     add
@@ -560,7 +605,7 @@ function loadTree(str) {
         .classed(BTN_CLASS, true)
         .classed('tree-action--running', true)
         .on('click', function(name) {
-            result.actions[name].forEach(a => a.status = RUNNING);
+            result.actions[name].forEach(a => a.setStatus(RUNNING));
             render();
         });
     run
