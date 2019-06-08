@@ -158,7 +158,7 @@ function sequence() {
 }
 
 function parallel(successCount) {
-    let par = node('=', 'parallel', []);
+    let par = node('\u21C9', 'parallel', []);
     par.tick = function() {
         par.active = true;
 
