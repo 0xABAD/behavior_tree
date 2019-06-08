@@ -29,6 +29,7 @@
         font-size: 20px;
         margin: 0px 4px;
     }
+    .tree-help-button { margin-right: 12px; }
     .tree-action--success { background: #4FC04F; } 
     .tree-action--failure { background: #F59A9A; }
     .tree-action--running { background: #59ABF0; }
@@ -43,6 +44,13 @@
         width: 100%;
         height: 100%;
     }
+    .tree-help {
+        position: absolute;
+        z-index: 100;
+        margin-top: 20px;
+        right: 50px;
+    }
+    .tree-help__action { font-weight: bold; }
   </style>
 </head>
 <body>
@@ -52,6 +60,31 @@
         <span class="mdl-layout-title">Behavior Tree</span>
         <!-- Add spacer, to align any items to the right -->
         <div class="mdl-layout-spacer"></div>
+        <div>
+          <button id="tree-help__button"
+                  class="mdl-button
+                         mdl-js-button
+                         mdl-button--fab
+                         mdl-button--mini-fab
+                         mdl-js-ripple-effect
+                         tree-help-button
+                         mdl-button--accent">
+            ?
+          </button>
+          <div id="tree-help__card" class="tree-help mdl-card mdl-shadow--2dp" style="visibility: hidden">
+            <div class="mdl-card__title">
+              <h2 class="mdl-card__title-text">Tree Manipulation</h2>
+            </div>
+            <div class="mdl-card__supporting-text">
+              <ul>
+                <li><span class="tree-help__action">Move</span>: Left Mouse Button</li>
+                <li><span class="tree-help__action">Zoom</span>: Mouse Wheel</li>
+                <li><span class="tree-help__action">Stretch Horizontal</span>: Shift + Wheel</li>
+                <li><span class="tree-help__action">Stretch Vertical</span>: Shift + Control + Wheel</li>
+              </ul>
+            </div>
+          </div>
+        </div>
         <input type="file" id="treeFileInput" style="display:none" accept="*.tree" class="visually-hidden">
         <button id="treeFileSelect"
                 class="mdl-button

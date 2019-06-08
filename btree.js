@@ -719,5 +719,17 @@ function loadTree(str) {
         }
     }, false);
 
+    d3.select('#tree-help__button')
+        .on('click', function() {
+            let card = d3.select('#tree-help__card'),
+                viz  = card.style('visibility');
+            if (viz == 'hidden') {
+                viz = 'visible';
+            } else {
+                viz = 'hidden';
+            }
+            card.style('visibility', viz);
+        });
+
     loadTree(SAMPLE_TREE);
 })();
