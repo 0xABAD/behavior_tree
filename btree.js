@@ -582,7 +582,7 @@ function loadTree(str) {
             if (e.deltaY < 0) {
                 up = true;
             }
-            if (e.shiftKey && e.ctrlKey) {
+            if (e.shiftKey && e.altKey) {
                 vertical_stretch += up ? 1 : -1;
                 vertical_stretch = clamp(vertical_stretch, 3, 1000);
             } else if (e.shiftKey) {
