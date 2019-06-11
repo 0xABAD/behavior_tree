@@ -370,8 +370,9 @@ function renderTree(parent, root, width, x0, x1) {
           .attr('transform', translate(root));
 
     svg.call(d3.drag().on('drag.svg', function() {
-        root.drag_dy += d3.event.dy;
-        root.drag_dx += d3.event.dx;
+        let s = clamp(root.scale, 1.0, root.scale);
+        root.drag_dy += d3.event.dy * s;
+        root.drag_dx += d3.event.dx * s;
         g.attr('transform', translate(root));
     }));
     
