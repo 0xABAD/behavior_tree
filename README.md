@@ -124,7 +124,7 @@ Sequence Node
 
 A sequence node is written with `->` and is in a _success_ state when
 all of its children nodes are in a _success_ state.  Otherwise, the
-state the action node will be the state of the first child, whether
+state of the sequence node will be the state of the first child, whether
 _failed_ or _running_.  A sequence node is akin to the *AND* operator
 of many programming languages.
 

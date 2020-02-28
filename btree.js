@@ -1,4 +1,6 @@
-const FAILED  = 0,
+//@ts-check
+
+const FAILED = 0,
       SUCCESS = 1,
       RUNNING = 2;
 
@@ -237,6 +239,13 @@ function parse(buf) {
         case ' ':
         case '\t':
             break;
+
+        case '\r': {
+            if (i < buf.length &&  buf[i] === '\n') {
+                i += 1;
+            }
+            line++;
+        } break;
 
         case '\n': {
             line++;
@@ -503,7 +512,31 @@ function renderTree(parent, root, width, x0, x1) {
                     .attr('height', '1.75em');
             }
         }
+
+        // node tooltip
+        var status = getFriendlyStatus(d.data.status());
+        d3.select(this)
+            .append("svg:title")
+            .text(d => `Node: ${d.data.hasNot?"NOT ": ""}${d.data.name} ${k}\nActive: ${active}\nStatus: ${status}`);
     });
+}
+
+/**
+ * Gets friendly status
+ * @param {number} status tree node status
+ * @returns {string} user-friendly status string
+ */
+function getFriendlyStatus(status) {
+    switch (status) {
+        case FAILED:
+            return 'Failed';
+        case SUCCESS:
+            return 'Success';
+        case RUNNING:
+            return 'Running';
+        default:
+            return 'Unknown';
+    }
 }
 
 function clamp(val, min, max) {
@@ -646,6 +679,7 @@ function loadTree(str) {
     let clear = actionBtns.append('button')
         .classed(BTN_CLASS, true)
         .classed('tree-action--failure', true)
+        .attr('title', name => "Set action '" + name + "' as failed")
         .on('click', function(name) {
             result.actions[name].forEach(a => a.setStatus(FAILED));
             render();
@@ -662,6 +696,7 @@ function loadTree(str) {
     let add = actionBtns.append('button')
         .classed(BTN_CLASS, true)
         .classed('tree-action--success', true)
+        .attr('title', name => "Set action '" + name + "' as succeeded")
         .on('click', function(name) {
             result.actions[name].forEach(a => a.setStatus(SUCCESS));
             render();
@@ -678,6 +713,7 @@ function loadTree(str) {
     let run = actionBtns.append('button')
         .classed(BTN_CLASS, true)
         .classed('tree-action--running', true)
+        .attr('title', name => "Start '" + name + "' action")
         .on('click', function(name) {
             result.actions[name].forEach(a => a.setStatus(RUNNING));
             render();
