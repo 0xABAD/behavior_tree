@@ -510,7 +510,31 @@ function renderTree(parent, root, width, x0, x1) {
                     .attr('height', '1.75em');
             }
         }
+
+        // node tooltip
+        var status = getFriendlyStatus(d.data.status());
+        d3.select(this)
+            .append("svg:title")
+            .text(d => `Node: ${d.data.hasNot?"NOT ": ""}${d.data.name} ${k}\nActive: ${active}\nStatus: ${status}`);
     });
+}
+
+/**
+ * Gets friendly status
+ * @param {int} status tree node status
+ * @returns {string} user-friendly status string
+ */
+function getFriendlyStatus(status) {
+    switch (status) {
+        case FAILED:
+            return 'Failed';
+        case SUCCESS:
+            return 'Success';
+        case RUNNING:
+            return 'Running';
+        default:
+            return 'Unknown';
+    }
 }
 
 function clamp(val, min, max) {
