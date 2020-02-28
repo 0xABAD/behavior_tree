@@ -1,4 +1,6 @@
-const FAILED  = 0,
+//@ts-check
+
+const FAILED = 0,
       SUCCESS = 1,
       RUNNING = 2;
 
@@ -521,7 +523,7 @@ function renderTree(parent, root, width, x0, x1) {
 
 /**
  * Gets friendly status
- * @param {int} status tree node status
+ * @param {number} status tree node status
  * @returns {string} user-friendly status string
  */
 function getFriendlyStatus(status) {
