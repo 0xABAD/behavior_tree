@@ -653,6 +653,7 @@ function loadTree(str) {
     let clear = actionBtns.append('button')
         .classed(BTN_CLASS, true)
         .classed('tree-action--failure', true)
+        .attr('title', name => "Set action '" + name + "' as failed")
         .on('click', function(name) {
             result.actions[name].forEach(a => a.setStatus(FAILED));
             render();
@@ -669,6 +670,7 @@ function loadTree(str) {
     let add = actionBtns.append('button')
         .classed(BTN_CLASS, true)
         .classed('tree-action--success', true)
+        .attr('title', name => "Set action '" + name + "' as succeeded")
         .on('click', function(name) {
             result.actions[name].forEach(a => a.setStatus(SUCCESS));
             render();
@@ -685,6 +687,7 @@ function loadTree(str) {
     let run = actionBtns.append('button')
         .classed(BTN_CLASS, true)
         .classed('tree-action--running', true)
+        .attr('title', name => "Start '" + name + "' action")
         .on('click', function(name) {
             result.actions[name].forEach(a => a.setStatus(RUNNING));
             render();
