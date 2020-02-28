@@ -238,6 +238,13 @@ function parse(buf) {
         case '\t':
             break;
 
+        case '\r': {
+            if (i < buf.length &&  buf[i] === '\n') {
+                i += 1;
+            }
+            line++;
+        } break;
+
         case '\n': {
             line++;
         } break;
