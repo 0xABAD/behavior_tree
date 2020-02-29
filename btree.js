@@ -292,7 +292,7 @@ function parse(buf) {
             }
             i = n;
             let e = pushNode(sequence());
-            if (err) {
+            if (e) {
                 return onError(e);
             }
         } break;
