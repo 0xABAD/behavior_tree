@@ -145,6 +145,35 @@ describe("BehaviorTree", () => {
             // then
             expect(JSON.stringify(actualTree)).equal(treeAsString);
         });
+
+        it('re-hydrates true condition from JSON with correct value', () => {
+            let conditionName = 'condition1';
+            let tree = btree.parse(`(${conditionName})`);
+            tree.setConditionStatus(conditionName, btree.SUCCESS);
+            tree.root.tick();
+            let treeAsString = JSON.stringify(tree);
+            let treeAsJson = JSON.parse(treeAsString);
+            // when
+            let actualTree = btree.BehaviorTree.fromJson(treeAsJson);
+            actualTree.root.tick();
+            // then
+            expect(actualTree.root.status()).equal(btree.SUCCESS, "condition value should be SUCCESS");
+        });
+
+        it('re-hydrates a running action from JSON with correct status', () => {
+            let actionName = 'action1';
+            let tree = btree.parse(`[${actionName}]`);
+            tree.setActionStatus(actionName, btree.RUNNING);
+            tree.root.tick();
+            let treeAsString = JSON.stringify(tree);
+            let treeAsJson = JSON.parse(treeAsString);
+            // when
+            let actualTree = btree.BehaviorTree.fromJson(treeAsJson);
+            actualTree.root.tick();
+            // then
+            expect(actualTree.root.status()).equal(btree.RUNNING, "action status should be RUNNING");
+            expect(actualTree.root.active).equal(true, "action status should be 'active'");
+        });
     });
 });
 

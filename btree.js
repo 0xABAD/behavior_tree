@@ -92,7 +92,7 @@ function node(name, kind, kids) {
     n.kind = kind;
     n.children = kids || null;
     n.active = false;
-    n.wasActive = false;
+    n.wasActive = false; // this does not seem to be used
     n.nodeStatus = FAILED;
     n.status = function() {
         if (n.hasNot) {
@@ -187,14 +187,15 @@ function parallel(successCount) {
     return par;
 }
 
-function action(name) {
+function action(name, status=RUNNING) {
     let a = node(name, ACTION);
-    a.setStatus(RUNNING);
+    a.setStatus(status);
     return a;
 }
 
-function condition(name, hasNot) {
+function condition(name, hasNot, status=FAILED) {
     let c = node(name, CONDITION);
+    c.setStatus(status);
     c.hasNot = hasNot; // ensure the property is declared in both cases
     return c;
 }
@@ -214,6 +215,24 @@ class BehaviorTree {
         this.conditions = conditions;
         this.line = line;
         this.error = error;
+    }
+
+    /**
+     * Updates tree with new condition value.
+     * @param {string} name condition name
+     * @param {number} status new status
+     */
+    setConditionStatus(name, status) {
+        this.conditions[name].forEach(c => c.setStatus(status));
+    }
+
+    /**
+     * Updates tree with new action status.
+     * @param {string} name action name
+     * @param {number} status new status
+     */
+    setActionStatus(name, status) {
+        this.actions[name].forEach(a => a.setStatus(status));
     }
 
     /**
@@ -247,11 +266,11 @@ class BehaviorTree {
                 node = parallel(nodeAsJson.successCount);
                 break;
             case ACTION:
-                node = action(nodeAsJson.name);
+                node = action(nodeAsJson.name, nodeAsJson.nodeStatus);
                 addToArrayMap(actions, node.name, node);
                 break;
             case CONDITION:
-                node = condition(nodeAsJson.name, nodeAsJson.hasNot);
+                node = condition(nodeAsJson.name, nodeAsJson.hasNot, nodeAsJson.nodeStatus);
                 addToArrayMap(conditions, node.name, node);
                 break;
             default:

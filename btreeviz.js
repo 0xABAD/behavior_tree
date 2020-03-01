@@ -216,20 +216,20 @@ function showError(message) {
  * @param {string} str behavior tree as string
  */
 function loadTree(str) {
-    let result = parse(str),
-        line = result.line;
-    if (result.error) {
-        showError(`Line ${line}: ${result.error}`);
+    let tree = parse(str),
+        line = tree.line;
+    if (tree.error) {
+        showError(`Line ${line}: ${tree.error}`);
         return;
     }
 
-    showTree(result);
+    showTree(tree);
 }
 
-function showTree(result) {
+function showTree(tree) {
     let x0   = Infinity,
         x1   = -x0,
-        data = d3.hierarchy(result.root),
+        data = d3.hierarchy(tree.root),
         root = undefined,
         horizontal_stretch = 0,
         vertical_stretch   = 8,
@@ -285,7 +285,7 @@ function showTree(result) {
     let conds = d3.select('#tree-conditions')
         .html('')
         .selectAll('a')
-        .data(Object.keys(result.conditions).sort())
+        .data(Object.keys(tree.conditions).sort())
         .enter()
         .append('a')
         .classed('mdl-navigation__link', true);
@@ -299,7 +299,7 @@ function showTree(result) {
         .classed('mdl-switch__input', true)
         .on('change', function(name) {
             let s = d3.event.target.checked ? SUCCESS : FAILED;
-            result.conditions[name].forEach(c => c.setStatus(s));
+            tree.setConditionStatus(name, s);
             render();
         });
     condLabels
@@ -320,7 +320,7 @@ function showTree(result) {
     let actions = d3.select('#tree-actions')
         .html('')
         .selectAll('a')
-        .data(Object.keys(result.actions).sort())
+        .data(Object.keys(tree.actions).sort())
         .enter()
         .append('a')
         .classed('mdl-navigation__link tree-action', true);
@@ -329,36 +329,36 @@ function showTree(result) {
 
     let actionBtns = actions.append('div');
 
-    let clear = actionBtns.append('button')
+    let fail = actionBtns.append('button')
         .classed(BTN_CLASS, true)
         .classed('tree-action--failure', true)
         .attr('title', name => "Set action '" + name + "' as failed")
         .on('click', function(name) {
-            result.actions[name].forEach(a => a.setStatus(FAILED));
+            tree.setActionStatus(name, FAILED);
             render();
         });
-    clear
+    fail
         .append('i')
         .classed('material-icons', true)
         .text('clear');
-    clear.each(function(d) {
+    fail.each(function(d) {
         let btn = d3.select(this).node();
         componentHandler.upgradeElement(btn);
     });
 
-    let add = actionBtns.append('button')
+    let succeed = actionBtns.append('button')
         .classed(BTN_CLASS, true)
         .classed('tree-action--success', true)
         .attr('title', name => "Set action '" + name + "' as succeeded")
         .on('click', function(name) {
-            result.actions[name].forEach(a => a.setStatus(SUCCESS));
+            tree.setActionStatus(name, SUCCESS);
             render();
         });
-    add
+    succeed
         .append('i')
         .classed('material-icons', true)
         .text('add');
-    add.each(function(d) {
+    succeed.each(function(d) {
         let btn = d3.select(this).node();
         componentHandler.upgradeElement(btn);
     });
@@ -368,7 +368,7 @@ function showTree(result) {
         .classed('tree-action--running', true)
         .attr('title', name => "Start '" + name + "' action")
         .on('click', function(name) {
-            result.actions[name].forEach(a => a.setStatus(RUNNING));
+            tree.setActionStatus(name, RUNNING);
             render();
         });
     run
