@@ -187,3 +187,17 @@ describe('#fallback', () => {
         expect(tree.root.status()).equal(btree.FAILED);
     });
 });
+
+describe('#action', () => {
+    it('runs action when ticked', () => {
+        let tree = btree.parse(`[a]`);
+        expect(tree.root.kind).to.be.equal(btree.ACTION);
+        // when
+        let activatedAction = null;
+        tree.onActionActivation(actionNode => activatedAction = actionNode);
+        tree.root.tick();
+        expect(tree.root.status()).equal(btree.RUNNING);
+        expect(tree.root.active).equal(true);
+        expect(activatedAction).equal(tree.root);
+    });
+});
