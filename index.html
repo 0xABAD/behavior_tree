@@ -9,6 +9,7 @@
   <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
   <script defer src="https://d3js.org/d3.v5.min.js"></script>
   <script defer src="btree.js"></script>
+  <script defer src="btreeviz.js"></script>
   <style>
     body { height: 98vh; }
     main { height: 100%; }
@@ -53,7 +54,7 @@
     .tree-help__action { font-weight: bold; }
   </style>
 </head>
-<body>
+<body onload="main()">
   <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
     <header class="mdl-layout__header">
       <div class="mdl-layout__header-row">
