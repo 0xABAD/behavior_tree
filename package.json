@@ -1,9 +1,16 @@
 {
     "scripts": {
-        "test": "mocha"
+        "test": "mocha",
+        "check": "tsc btree.js --allowJS --checkJS --noEmit --lib ES2015"
+    },
+    "dependencies": {
+        "body-parser": "^1.19.0",
+        "cors": "^2.8.5",
+        "express": "^4.17.1"
     },
     "devDependencies": {
         "chai": "^4.2.0",
-        "mocha": "^7.1.0"
+        "mocha": "^7.1.0",
+        "typescript": "^3.8.3"
     }
 }

@@ -17,7 +17,7 @@ function expect(what, have) {
 }
 
 /**
- * Parses sequence node
+ * Parses _sequence_ node from current position in the buffer
  * @param {string} buf behavior tree model
  * @param {number} i current index
  * @returns {[number, string | null]} tuple with adjusted current parsing index and error message or null
@@ -36,13 +36,19 @@ function parseSequence(buf, i) {
     }
 }
 
+/**
+ * Parses _condition_ node from current position in the buffer
+ * @param {string} buf input buffer
+ * @param {number} i position in input buffer
+ * @returns {[number, string, string | null]} tuple with adjusted current parsing index, actual string and expected string
+ */
 function parseCondition(buf, i) {
     let cond = '';
     while (i < buf.length) {
         let ch = buf[i];
         i++;
         if (ch == ')') {
-            return [i, cond.trim(), undefined];
+            return [i, cond.trim(), null];
         } else {
             cond = cond.concat(ch);
         }
@@ -50,13 +56,19 @@ function parseCondition(buf, i) {
     return [i, cond, expect(')', 'EOF')];
 }
 
+/**
+ * Parses _action_ node from current position in the buffer
+ * @param {string} buf input buffer
+ * @param {number} i position in input buffer
+ * @returns {[number, string, string | null]} tuple with adjusted current parsing index, actual string and expected string
+ */
 function parseAction(buf, i) {
     let action = '';
     while (i < buf.length) {
         let ch = buf[i];
         i++;
         if (ch == ']') {
-            return [i, action.trim(), undefined];
+            return [i, action.trim(), null];
         } else {
             action = action.concat(ch);
         }
@@ -64,6 +76,12 @@ function parseAction(buf, i) {
     return [i, action, expect(']', 'EOF')];
 }
 
+/**
+ * Parses _parallel_ node from current position in the buffer
+ * @param {string} buf input buffer
+ * @param {number} i position in input buffer
+ * @returns {[number, number, string | null]} tuple with parallel success branch count, adjusted current parsing index and error message or undefined
+ */
 function parseParallel(buf, i) {
     let numBuf = '';
     while (i < buf.length) {
@@ -86,87 +104,154 @@ function parseParallel(buf, i) {
     return [num, i, null];
 }
 
-function node(name, kind, kids) {
-    let n = {};
-    n.name = name;
-    n.kind = kind;
-    n.children = kids || null;
-    n.active = false;
-    n.wasActive = false; // this does not seem to be used
-    n.nodeStatus = FAILED;
-    n.status = function() {
-        if (n.hasNot) {
-            switch (n.nodeStatus) {
-            case SUCCESS: return FAILED;
-            case FAILED:  return SUCCESS;
+class Node {
+    /**
+     * Creates node.
+     * @param {string} name node name
+     * @param {string} kind node kind
+     * @param {Node[] | undefined} children children nodes
+     */
+    constructor(name, kind, children=undefined) {
+        /** @property {string} node name. */
+        this.name = name;
+        /** @property {string} kind kid such as "fallback". */
+        this.kind = kind;
+        /** @property {Node[] | undefined} children children nodes. */
+        this.children = children || null;
+        this._active = false;
+        this.wasActive = false; // this does not seem to be used
+        this.nodeStatus = FAILED;
+        this.hasNot = false;
+    }
+    status() {
+        if (this.hasNot) {
+            switch (this.nodeStatus) {
+                case SUCCESS: return FAILED;
+                case FAILED: return SUCCESS;
             }
         }
-        return n.nodeStatus;
-    };
-    n.setStatus = function(s) {
-        n.nodeStatus = s;
-    };
-    n.tick = function() {
-        n.active = true;
-        return n.status();
-    };
-    n.deactivate = function() {
-        n.active = false;
-        if (n.children) {
-            for (let i = 0; i < n.children.length; i++) {
-                n.children[i].deactivate();
+        return this.nodeStatus;
+    }
+    /** @param {number} newStatus */
+    setStatus(newStatus) {
+        this.nodeStatus = newStatus;
+    }
+    /** @returns {boolean} true if node is active*/
+    active() {
+        return this._active;
+    }
+    /** @param {boolean} isActive */
+    setActive(isActive) {
+        let previouslyActive = this._active;
+        this._active = isActive;
+        // was previously active and now it no longer is
+        if (previouslyActive && !isActive) {
+            this.wasActive = true;
+        }
+    }
+    tick() {
+        this.setActive(true);
+        return this.status();
+    }
+    deactivate() {
+        this.setActive(false);
+        if (this.children) {
+            for (let i = 0; i < this.children.length; i++) {
+                this.children[i].deactivate();
             }
         }
-    };
-    return n;
+    }
 }
 
-function fallback() {
-    let fb = node('?', FALLBACK, []);
-    fb.tick = function() {
-        fb.active = true;
-        for (let i = 0; i < fb.children.length; i++) {
-            let s = fb.children[i].tick();
-            fb.setStatus(s);
+/**
+ * Creates fallback node.
+ * @param {Node[]} children
+ */
+function fallback(children = []) {
+    return new Fallback(children);
+}
+
+class Fallback extends Node {
+    /**
+     * Creates fallback node.
+     * @param {Node[]} children
+     */
+    constructor(children = []) {
+        super('?', FALLBACK, children || []);
+    }
+    tick() {
+        this.setActive(true);
+        for (let i = 0; i < this.children.length; i++) {
+            let s = this.children[i].tick();
+            this.setStatus(s);
             if (s == RUNNING || s == SUCCESS) {
-                return fb.status();
+                return this.status();
             }
         }
-        fb.setStatus(FAILED);
-        return fb.status();
-    };
-    return fb;
+        this.setStatus(FAILED);
+        return this.status();
+    }
 }
 
-function sequence() {
-    let seq = node('\u2192', SEQUENCE, []);
-    seq.tick = function() {
-        seq.active = true;
-        for (let i = 0; i < seq.children.length; i++) {
-            let s = seq.children[i].tick();
-            seq.setStatus(s);
+/**
+ * Creates fallback node.
+ * @param {Node[]} children
+ */
+function sequence(children = []) {
+    return new Sequence(children || []);
+}
+
+class Sequence extends Node {
+    /**
+     * Creates fallback node.
+     * @param {Node[]} children
+     */
+    constructor(children = []) {
+        super('\u2192', SEQUENCE, children);
+    }
+    tick() {
+        this.setActive(true);
+        for (let i = 0; i < this.children.length; i++) {
+            let s = this.children[i].tick();
+            this.setStatus(s);
             if (s == RUNNING || s == FAILED) {
-                return seq.status();
+                return this.status();
             }
         }
-        seq.setStatus(SUCCESS);
-        return seq.status();
-    };
-    return seq;
+        this.setStatus(SUCCESS);
+        return this.status();
+    }
 }
 
-function parallel(successCount) {
-    let par = node('\u21C9', PARALLEL, []);
-    par.successCount = successCount;
-    par.tick = function() {
-        par.active = true;
+
+/**
+ * Creates fallback node.
+ * @param {number} successCount minimal number of children necessary for the state to be SUCCESS
+ * @param {Node[]} children
+ */
+function parallel(successCount, children = []) {
+    return new Parallel(successCount, children);
+}
+
+class Parallel extends Node {
+    /**
+     * Creates Parallel node
+     * @param {number} successCount minimal number of children necessary for the state to be SUCCESS
+     * @param {Node[]} children
+     */
+    constructor(successCount, children = []) {
+        super('\u21C9', PARALLEL, children || []);
+        this.successCount = successCount;
+    }
+    tick() {
+        this.setActive(true);
 
         let succeeded = 0,
             failed    = 0,
-            kidCount  = par.children.length;
+            kidCount  = this.children.length;
 
-        for (let i = 0; i < par.children.length; i++) {
-            let s = par.children[i].tick();
+        for (let i = 0; i < this.children.length; i++) {
+            let s = this.children[i].tick();
             if (s == SUCCESS) {
                 succeeded++;
             }
@@ -176,45 +261,134 @@ function parallel(successCount) {
         }
 
         let st = RUNNING;
-        if (succeeded >= successCount) {
+        if (succeeded >= this.successCount) {
             st = SUCCESS;
-        } else if (failed > kidCount - successCount) {
+        } else if (failed > kidCount - this.successCount) {
             st = FAILED;
         }
-        par.setStatus(st);
+        this.setStatus(st);
         return st;
-    };
-    return par;
+    }
 }
 
-function action(name, status=RUNNING) {
-    let a = node(name, ACTION);
-    a.setStatus(status);
-    return a;
+/**
+ * @typedef {(action: Action) => void} ActionActivationCallback Callback called upon action activation
+ */
+
+/**
+ * Creates action node.
+ * @param {string} name action name
+ * @param {ActionActivationCallback | undefined} onActivation action activation callback
+ * @param {number} status node status
+ */
+function action(name, onActivation=undefined, status=RUNNING) {
+    return new Action(name, onActivation, status);
 }
 
-function condition(name, hasNot, status=FAILED) {
-    let c = node(name, CONDITION);
-    c.setStatus(status);
-    c.hasNot = hasNot; // ensure the property is declared in both cases
-    return c;
+class Action extends Node {
+
+    /**
+     * Creates Action node.
+     * @param {string} name action name
+     * @param {ActionActivationCallback} onActivation on action
+     * @param {number} status initial action status
+     */
+    constructor(name, onActivation = undefined, status = RUNNING) {
+        super(name, ACTION);
+        /** @property {Array<ActionActivationCallback>} action activation callbacks. */
+        this.actionActivationCallback = new Array();
+        if (onActivation) {
+            this.actionActivationCallback.push(onActivation);
+        }
+        this.setStatus(status);
+    }
+
+    /**
+     * Adds action activation callback.
+     * @param {ActionActivationCallback} callback action activation callback
+     */
+    onActivation(callback) {
+        this.actionActivationCallback.push(callback);
+    }
+
+    /** @param {boolean} isActive */
+    setActive(isActive) {
+        super.setActive(isActive);
+        this.actionActivationCallback.forEach(c => c(this));
+    }
+}
+
+/**
+ * Creates condition.
+ * @param {string} name condition name
+ * @param {boolean} hasNot condition negation flag
+ * @param {number} status initial condition status
+ */
+function condition(name, hasNot, status = FAILED) {
+    return new Condition(name, hasNot, status);
+}
+
+class Condition extends Node {
+    /**
+     * Creates Condition node.
+     * @param {string} name condition name
+     * @param {boolean} hasNot is used as negated in the tree
+     * @param {number} status initial status
+     */
+    constructor(name, hasNot, status = FAILED) {
+        super(name, CONDITION);
+        this.hasNot = hasNot; // ensure the property is declared in both cases
+        this.setStatus(status);
+    }
 }
 
 class BehaviorTree {
+
     /**
      * Behavior Tree
-     * @param {any} root tree root node
-     * @param {Map<string, any[]>} actions list of actions grouped by name
-     * @param {Map<string, any[]>} conditions list of conditions grouped by name
-     * @param {number} line line at which the error ocurred
-     * @param {string} error parsing error
+     * @param {Node} root tree root node
+     * @param {number|null} line line at which the error ocurred
+     * @param {string|null} error parsing error
      */
-    constructor(root, actions, conditions, line, error = null) {
+    constructor(root, line = null, error = null) {
+        /** @property {Node} root node. */
         this.root = root;
-        this.actions = actions;
-        this.conditions = conditions;
+        /** @property {Map<string, Action[]>} actions list of actions grouped by name */
+        this.actions = new Map();
+        /** @property {Map<string, Condition[]>} conditions list of conditions grouped by name */
+        this.conditions = new Map();
         this.line = line;
         this.error = error;
+
+        if (this.root) {
+            this.extractActionsAndConditions(this.root);
+        }
+
+        /** @property {Array<ActionActivationCallback>} actionActivationCallbacks callbacks for action activations in this tree. */
+        this.actionActivationCallbacks = new Array();
+        let thisTree = this;
+        /** @property {ActionActivationCallback} onAnyActionActivation callbacks for action activations in this tree. */
+        this.onAnyActionActivation = function (/** @type {Action} */ actionNode) {
+            thisTree.actionActivationCallbacks.forEach(callback => callback(actionNode));
+        }
+        // subscribe to all action nodes in this tree activations
+        this.actions.forEach(actions => actions.forEach(a => a.onActivation(this.onAnyActionActivation)));
+    }
+
+    /**
+     * Recursively extracts action and condition nodes from the sub-tree.
+     * @param {Node} node tree node
+     * @returns {void}
+     */
+    extractActionsAndConditions(node) {
+        if (node instanceof Action) {
+            addToArrayMap(this.actions, node.name, node);
+        } else if (node instanceof Condition) {
+            addToArrayMap(this.conditions, node.name, node);
+        }
+        if (node.children) {
+            node.children.forEach(c => this.extractActionsAndConditions(c));
+        }
     }
 
     /**
@@ -223,7 +397,7 @@ class BehaviorTree {
      * @param {number} status new status
      */
     setConditionStatus(name, status) {
-        this.conditions[name].forEach(c => c.setStatus(status));
+        this.conditions.get(name).forEach((/** @type {Condition} */ c) => c.setStatus(status));
     }
 
     /**
@@ -232,7 +406,15 @@ class BehaviorTree {
      * @param {number} status new status
      */
     setActionStatus(name, status) {
-        this.actions[name].forEach(a => a.setStatus(status));
+        this.actions.get(name).forEach((/** @type {Action} */ a) => a.setStatus(status));
+    }
+
+    /**
+     * Subscribe to action activation events.
+     * @param {ActionActivationCallback} callback action activation callback
+     */
+    onActionActivation(callback) {
+        this.actionActivationCallbacks.push(callback);
     }
 
     /**
@@ -241,19 +423,15 @@ class BehaviorTree {
      * @returns {BehaviorTree}
      */
     static fromJson(treeAsJson) {
-        let actions = new Map();
-        let conditions = new Map();
-        let rootNode = BehaviorTree.nodeFromJson(treeAsJson.root, actions, conditions);
-        return new BehaviorTree(rootNode, actions, conditions, treeAsJson.line, treeAsJson.error);
+        let rootNode = BehaviorTree.nodeFromJson(treeAsJson.root);
+        return new BehaviorTree(rootNode, treeAsJson.line, treeAsJson.error);
     }
 
     /**
      * Re-builds tree node.
      * @param {any} nodeAsJson node in plain JSON form
-     * @param {Map<string, any[]>} actions map to register all actions found
-     * @param {Map<string, any[]>} conditions map to register all conditions found
      */
-    static nodeFromJson(nodeAsJson, actions, conditions) {
+    static nodeFromJson(nodeAsJson) {
         let node;
         switch (nodeAsJson.kind) {
             case FALLBACK:
@@ -266,19 +444,17 @@ class BehaviorTree {
                 node = parallel(nodeAsJson.successCount);
                 break;
             case ACTION:
-                node = action(nodeAsJson.name, nodeAsJson.nodeStatus);
-                addToArrayMap(actions, node.name, node);
+                node = action(nodeAsJson.name, undefined, nodeAsJson.nodeStatus);
                 break;
             case CONDITION:
                 node = condition(nodeAsJson.name, nodeAsJson.hasNot, nodeAsJson.nodeStatus);
-                addToArrayMap(conditions, node.name, node);
                 break;
             default:
                 throw new Error(`Unexpected node kind: ${nodeAsJson.kind}.`);
         }
 
         if (nodeAsJson.children) {
-            node.children = nodeAsJson.children.map(child => this.nodeFromJson(child, actions, conditions));
+            node.children = nodeAsJson.children.map(child => this.nodeFromJson(child));
         }
 
         return node;
@@ -291,14 +467,18 @@ class BehaviorTree {
  * @returns {BehaviorTree}
  */
 function parse(buf) {
-    let indent     = 0,        // current recorded indentation
-        line       = 1,        // line number in text
-        nodes      = [null],   // node tree
-        actions    = new Map(),// action nodes grouped by name
-        conditions = new Map(),// condition nodes grouped by name
-        notPending = false,    // is 'not' decorator waiting to be applied?
+    let indent     = 0,     // current recorded indentation
+        line       = 1,     // line number in text
+        notPending = false, // is 'not' decorator waiting to be applied?
         i          = 0;
 
+    /** @type {Node[]} nodes in the current tree branch */
+    let nodes = [null];
+
+    /**
+     * @param {Node} node tree node being pushed to current tree branch
+     * @returns {string|null} error or `null`
+     */
     function pushNode(node) {
         if (indent === 0 && nodes[indent]) {
             return `More than one root node or node '${node.name}' has wrong indentation.`;
@@ -318,11 +498,11 @@ function parse(buf) {
             nodes[indent] = node;
         }
         indent++; // nested child on the same line should be indented
-        return null;
+        return null; // no error to be reported
     };
 
     function onError(err) {
-        return new BehaviorTree(null, actions, conditions, line, err);
+        return new BehaviorTree(null, line, err);
     }
 
     while (i < buf.length) {
@@ -401,7 +581,6 @@ function parse(buf) {
             }
             i = n;
             let c = condition(name, notPending);
-            addToArrayMap(conditions, name, c);
             if (notPending) {
                 notPending = false;
             }
@@ -418,7 +597,6 @@ function parse(buf) {
             }
             i = n;
             let a = action(name);
-            addToArrayMap(actions, name, a);
             let e = pushNode(a);
             if (e) {
                 return onError(e);
@@ -441,14 +619,20 @@ function parse(buf) {
         return onError(e);
     }
 
-    return new BehaviorTree(nodes[0], actions, conditions, line, null);
+    return new BehaviorTree(nodes[0], line, null);
 }
 
+/**
+ * 
+ * @param {Map<string, Node[]>} map map to insert to
+ * @param {string} key map key
+ * @param {Node} value value to insert for the given _key_
+ */
 function addToArrayMap(map, key, value) {
-    if (map[key]) {
-        map[key].push(value);
+    if (map.has(key)) {
+        map.get(key).push(value);
     } else {
-        map[key] = [value];
+        map.set(key, [value]);
     }
 }
 
@@ -470,12 +654,30 @@ const SAMPLE_TREE = `
 |    |    [Eat Fruit]
 `;
 
+/**
+ * Gets friendly status
+ * @param {number} status tree node status
+ * @returns {string} user-friendly status string
+ */
+function getFriendlyStatus(status) {
+    switch (status) {
+        case FAILED:
+            return 'Failed';
+        case SUCCESS:
+            return 'Success';
+        case RUNNING:
+            return 'Running';
+        default:
+            return 'Unknown';
+    }
+}
+
 if (typeof exports !== 'undefined' && exports) {
     exports.bt = {
         BehaviorTree,
         parse, SUCCESS, FAILED, RUNNING,
         fallback, sequence, parallel, condition, action,
         FALLBACK, SEQUENCE, PARALLEL, CONDITION, ACTION,
-        SAMPLE_TREE
+        SAMPLE_TREE, getFriendlyStatus
     };
 }

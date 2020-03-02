@@ -1,11 +1,9 @@
-Behavior Tree
-=============
+# Behavior Tree
 
 A simple implementation of a behavior tree with a demo that can be
 played with [here](http://0xABAD.github.io/behavior_tree).
 
-Introduction
-------------
+## Introduction
 
 Behavior trees are a technique used in video games and robotics to
 model behavior AI.  Their use has become increasingly popular due to
@@ -37,15 +35,14 @@ _failed_, and these states are denoted by the colors _green_, _blue_,
 and _red_, respectively.  Note that condition nodes may be in a
 _successful_ or _failed_ state, never _running_.
 
-Syntax
-======
+## Syntax
 
 The demo allows the loading of any arbitrary tree and the syntax is
 simple and easy to understand.  By default when the demo is loaded in
 the browser the default tree for the behavior of Pac-man would be
 written as:
 
-```
+```tree
 ?
 |    ->
 |    |    (Ghost Close)
@@ -68,8 +65,7 @@ of error reporting as the parser will stop at the first error which
 will then be displayed directly on the page with the line number that
 it occurred on.  A correct tree must have exactly one root node.
 
-Fallback Node
--------------
+### Fallback Node
 
 A fallback node is written with a question mark, `?`, and will choose
 the first child that evaluates to _success_ or _running_.  If all
@@ -77,8 +73,7 @@ children nodes have _failed_ then the fallback node will be _failed_
 as well.  Fallback nodes resemble an *OR* operator of programming
 languages with short-circuite behavior.
 
-Condition Node
---------------
+### Condition Node
 
 A condition node is represented as `(name of condition)`.  A condition
 represents a true or false state and as previously mentioned it may
@@ -87,8 +82,7 @@ behavior tree and are the key ingredient to influence its path to find
 the current running behavior.  For the sake of this implementation
 conditions are case sensitive when determining the state of a condition.
 
-Indentation Level
------------------
+### Indentation Level
 
 Indentation of a tree is marked with the `|` symbol and denotes one
 level of indentation within the tree.  Multiple indentation markers
@@ -99,7 +93,7 @@ With fallback and condition nodes along with indentation markers we
 now have enough syntax to create a simple behavior tree.  Here we have
 a tree with a height of one, has one fallback node, and two condition
 
-```
+```tree
 ?
 |    (Condition One)
 |    (Condition Two)
@@ -109,8 +103,7 @@ In this example, `(Condition One)` and `(Condition Two)` are child
 nodes of the fallback node which will be in a _success_ state when
 either of the children are in a _success_ state.
 
-Action Node
------------
+### Action Node
 
 `[Some Action]` is the syntax for an action node.  Action nodes
 specify _what_ should be done _when_ the action becomes active.  When
@@ -119,8 +112,7 @@ becomes active so they can be _executed_ to carry the behavior of the
 tree.  The component executing the action will report back whether the
 action is _running_, _success_, or _failed_.
 
-Sequence Node
--------------
+### Sequence Node
 
 A sequence node is written with `->` and is in a _success_ state when
 all of its children nodes are in a _success_ state.  Otherwise, the
@@ -128,16 +120,14 @@ state of the sequence node will be the state of the first child, whether
 _failed_ or _running_.  A sequence node is akin to the *AND* operator
 of many programming languages.
 
-Not Decorator
--------------
+### Not Decorator
 
 A condition node, and only condition nodes, may be decorated with the
 not, `!`, decorator.  As is many programming languages this decorator
 inverts the result of its condition, so `!(Have Free Space)` will be
 in a _failed_ state when there is actually free space available.
 
-Parallel Node
--------------
+### Parallel Node
 
 The parallel node is written as `=N` where `N` is some positive
 integer.  The parallel node, like fallback and sequence nodes, can
@@ -146,3 +136,84 @@ the number of children in a _success_ state is greater than or equal
 to `N`.  If number of children in a _failed_ state is greater than the
 number of children in a _success_ state minus `N` then the parallel
 node will be _failed_; otherwise, it will be considered _running_.
+
+## Using BehaviorTree in your code
+
+### Parsing behavior tree and executing it
+
+The `BehaviorTree` may be used programmatically to execute the behavior modeled in the tree:
+
+```javascript
+let btree = require('./btree').bt;
+```
+
+```javascript
+let tree = btree.parse(`
+?
+|   !(have hunger)
+|   [eat]`);
+
+// subscribe to action activation
+tree.onActionActivation(actionNode => {
+    switch (actionNode.name) {
+        case 'eat':
+            console.log(btree.getFriendlyStatus(actionNode.status())); // prints 'running'
+            if (actionNode.active()) { // in general we should check that the action is in an active branch
+                console.log('Started eating...');
+                // no longer hungry!
+                tree.setConditionStatus('have hunger', btree.FAILED);
+                console.log('Done eating...');
+                tree.setActionStatus('eat', btree.SUCCESS);
+            }
+    }
+});
+tree.root.tick();
+
+console.log('Initial state:');
+console.log(btree.getFriendlyStatus(tree.root.status())); // prints 'success'
+console.log(tree.root.active()); // prints true
+
+// then we get hunger
+tree.setConditionStatus('have hunger', btree.SUCCESS);
+let statusAfterHungerIsTrue = tree.root.tick();
+console.log(btree.getFriendlyStatus(statusAfterHungerIsTrue)); // prints 'success', because the action was executed synchronously as part of the tick
+
+// now 'Started/Done eating...' should be printed
+
+// final state:
+tree.root.tick();
+console.log(btree.getFriendlyStatus(tree.root.status())); // prints 'success'
+```
+
+This approach allows the separation between the tree model and the action implementation.
+
+### Building behavior tree and executing it
+
+Another way to use the `BehaviorTree` is to programmatically construct the tree nodes, including the action implementation:
+
+```javascript
+// define the action 'eat' implementation
+let onEat = function (actionNode) {
+    switch (actionNode.name) {
+        case 'eat':
+            console.log(btree.getFriendlyStatus(actionNode.status())); // prints 'running'
+            if (actionNode.active()) { // in general we should check that the action is in an active branch
+                console.log('Started eating...');
+                // no longer hungry!
+                tree.setConditionStatus('have hunger', btree.FAILED);
+                console.log('Done eating...');
+                tree.setActionStatus('eat', btree.SUCCESS);
+            }
+    }
+};
+
+// ?
+// |   !(have hunger)
+// |   [eat]`
+
+let rootNode = btree.fallback([
+    btree.condition("have hunger", true),
+    btree.action("eat", onEat)
+]);
+let tree = new btree.BehaviorTree(rootNode);
+```
