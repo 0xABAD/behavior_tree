@@ -192,7 +192,7 @@ describe('#parse', () => {
 
 describe("BehaviorTree", () => {
     describe("#fromJson", () => {
-        it('builds tre from JSON)', () => {
+        it('builds tree from JSON', () => {
             let tree = BehaviorTree.fromJson(JSON.parse(`{
                 "root":{
                     "name": "Avoid Ghost",
