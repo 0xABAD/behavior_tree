@@ -1,8 +1,13 @@
 //@ts-check
 
-let btree = require('../btree').bt;
 let expect = require('chai').expect;
 let fs = require('fs');
+const { BehaviorTree, parse,
+    Fallback, Sequence, Parallel, Action, Condition,
+    FALLBACK, SEQUENCE, PARALLEL, ACTION, CONDITION,
+    fallback, sequence, parallel, action, condition,
+    SUCCESS, FAILED, RUNNING, FINISHED,
+    SAMPLE_TREE, getFriendlyStatus } = require('../btree').bt;
 
 describe('README.md samples', () => {
     it('runs all samples from README.md', () => {
@@ -24,7 +29,7 @@ describe('README.md samples', () => {
             }
             fenceStart.lastIndex = endMatch.index + endMatch[0].length + 1;
             let fencedText = readme.substring(fencedTextStartIdx, endMatch.index);
-            console.log(`${language}: ${fencedText}`);
+            // console.log(`${language}: ${fencedText}`);
             checkSample(language, fencedText);
         }
 
@@ -39,7 +44,7 @@ describe('README.md samples', () => {
 function checkSample(language, sampleCode) {
     switch (language.toLowerCase()) {
         case 'tree':
-            let tree = btree.parse(sampleCode);
+            let tree = parse(sampleCode);
             expect(tree.root).to.be.not.null;
             expect(tree.error, `there should be no error in tree sample ${sampleCode}`).to.be.null;
             break;
@@ -58,7 +63,7 @@ describe('#parse', () => {
 
     context('valid input', () => {
         it('parses sample', () => {
-            let tree = btree.parse(btree.SAMPLE_TREE);
+            let tree = parse(SAMPLE_TREE);
             expect(tree.root).to.be.not.null;
             expect(tree.error).to.be.null;
             expect(tree.conditions.get('Ghost Scared')).to.have.length(2);
@@ -68,32 +73,32 @@ describe('#parse', () => {
 
     context('for single-node tree', () => {
         it('parses fallback', () => {
-            let tree = btree.parse(`?`);
+            let tree = parse(`?`);
             expect(tree.root).to.be.not.null;
-            expect(tree.root.kind).to.be.equal(btree.FALLBACK);
+            expect(tree.root.kind).to.be.equal(FALLBACK);
         });
 
         it('parses sequence', () => {
-            let tree = btree.parse(`->`);
+            let tree = parse(`->`);
             expect(tree.root).to.be.not.null;
-            expect(tree.root.kind).to.be.equal(btree.SEQUENCE);
+            expect(tree.root.kind).to.be.equal(SEQUENCE);
         });
 
         it('parses parallel', () => {
             let count = 12;
-            let tree = btree.parse(`=${count}`);
+            let tree = parse(`=${count}`);
             expect(tree.root).to.be.not.null;
-            expect(tree.root.kind).to.be.equal(btree.PARALLEL);
-            /** @type {btree.Parallel} */
+            expect(tree.root.kind).to.be.equal(PARALLEL);
+            /** @type {Parallel} */
             let actualParallel = tree.root;
             expect(actualParallel.successCount).to.be.equal(count);
         });
 
         it('parses condition', () => {
             let conditionName = 'condition1';
-            let tree = btree.parse(`(${conditionName})`);
+            let tree = parse(`(${conditionName})`);
             expect(tree.root).to.be.not.null;
-            expect(tree.root.kind).to.be.equal(btree.CONDITION);
+            expect(tree.root.kind).to.be.equal(CONDITION);
             expect(tree.root.name).to.be.equal(conditionName);
             expect(tree.root.hasNot).to.be.equal(false);
             expect(tree.conditions.get(conditionName)).to.be.deep.equal([tree.root]);
@@ -101,9 +106,9 @@ describe('#parse', () => {
 
         it('parses negated condition', () => {
             let conditionName = 'condition1';
-            let tree = btree.parse(`!(${conditionName})`);
+            let tree = parse(`!(${conditionName})`);
             expect(tree.root).to.be.not.null;
-            expect(tree.root.kind).to.be.equal(btree.CONDITION);
+            expect(tree.root.kind).to.be.equal(CONDITION);
             expect(tree.root.name).to.be.equal(conditionName);
             expect(tree.root.hasNot).to.be.equal(true);
             expect(tree.conditions.get(conditionName)).to.be.deep.equal([tree.root]);
@@ -111,9 +116,9 @@ describe('#parse', () => {
 
         it('parses double-negated condition', () => {
             let conditionName = 'condition1';
-            let tree = btree.parse(`!!(${conditionName})`);
+            let tree = parse(`!!(${conditionName})`);
             expect(tree.root).to.be.not.null;
-            expect(tree.root.kind).to.be.equal(btree.CONDITION);
+            expect(tree.root.kind).to.be.equal(CONDITION);
             expect(tree.root.name).to.be.equal(conditionName);
             expect(tree.root.hasNot).to.be.equal(false);
             expect(tree.conditions.get(conditionName)).to.be.deep.equal([tree.root]);
@@ -121,9 +126,9 @@ describe('#parse', () => {
 
         it('parses action', () => {
             let actionName = 'action name';
-            let tree = btree.parse(`[${actionName}]`);
+            let tree = parse(`[${actionName}]`);
             expect(tree.root).to.be.not.null;
-            expect(tree.root.kind).to.be.equal(btree.ACTION);
+            expect(tree.root.kind).to.be.equal(ACTION);
             expect(tree.root.name).to.be.equal(actionName);
             expect(tree.actions.get(actionName)).to.be.deep.equal([tree.root]);
         });
@@ -131,13 +136,13 @@ describe('#parse', () => {
 
     context('for invalid input', () => {
         it('returns error for empty string', () => {
-            let tree = btree.parse('');
+            let tree = parse('');
             expect(tree.root).to.equal(null);
             expect(tree.error).to.not.equal(null, "there should be error message");
         });
 
         it('returns error for double root', () => {
-            let tree = btree.parse(`->
+            let tree = parse(`->
                 |   (some condition)
                 ->
                 |   (some other condition)
@@ -147,7 +152,7 @@ describe('#parse', () => {
         });
 
         it('returns error for double indent (orphan tree branches)', () => {
-            let tree = btree.parse(`->
+            let tree = parse(`->
                 |   |   (some condition)
                 `);
             expect(tree.root).to.equal(null);
@@ -155,7 +160,7 @@ describe('#parse', () => {
         });
 
         it('returns error for child of condition', () => {
-            let tree = btree.parse(`(condition)
+            let tree = parse(`(condition)
                 |   (some other condition)
                 `);
             expect(tree.root).to.equal(null);
@@ -163,7 +168,7 @@ describe('#parse', () => {
         });
 
         it('returns error for child of action', () => {
-            let tree = btree.parse(`[action]
+            let tree = parse(`[action]
                 |   (some condition)
                 `);
             expect(tree.root).to.equal(null);
@@ -171,14 +176,14 @@ describe('#parse', () => {
         });
 
         it('returns error for lack of root tree level', () => {
-            let tree = btree.parse(`|   [action1]`);
+            let tree = parse(`|   [action1]`);
             expect(tree.root).to.equal(null);
             expect(tree.error).to.contain("no parent", "there should be error message");
         });
 
         // todo: decide whether the syntax should allow this
         it.skip('returns error for two nodes on the same line', () => {
-            let tree = btree.parse(`->  [action1]`);
+            let tree = parse(`->  [action1]`);
             expect(tree.root).to.equal(null);
             expect(tree.error).to.contain("can't have child nodes", "there should be error message");
         });
@@ -188,7 +193,7 @@ describe('#parse', () => {
 describe("BehaviorTree", () => {
     describe("#fromJson", () => {
         it('builds tre from JSON)', () => {
-            let tree = btree.BehaviorTree.fromJson(JSON.parse(`{
+            let tree = BehaviorTree.fromJson(JSON.parse(`{
                 "root":{
                     "name": "Avoid Ghost",
                     "kind": "action",
@@ -199,16 +204,16 @@ describe("BehaviorTree", () => {
                     "hasNot": false
                 }
             }`));
-            expect(tree.root.kind).to.be.equal(btree.ACTION);
+            expect(tree.root.kind).to.be.equal(ACTION);
         });
 
         it('parses sample and re-hydrates it from JSON', () => {
-            let tree = btree.parse(btree.SAMPLE_TREE);
+            let tree = parse(SAMPLE_TREE);
             tree.root.tick();
             let treeAsString = JSON.stringify(tree);
             let treeAsJson = JSON.parse(treeAsString);
             // when
-            let actualTree = btree.BehaviorTree.fromJson(treeAsJson);
+            let actualTree = BehaviorTree.fromJson(treeAsJson);
             actualTree.root.tick();
             // then
             expect(JSON.stringify(actualTree)).equal(treeAsString);
@@ -216,63 +221,63 @@ describe("BehaviorTree", () => {
 
         it('re-hydrates true condition from JSON with correct value', () => {
             let conditionName = 'condition1';
-            let tree = btree.parse(`(${conditionName})`);
-            tree.setConditionStatus(conditionName, btree.SUCCESS);
+            let tree = parse(`(${conditionName})`);
+            tree.setConditionStatus(conditionName, SUCCESS);
             tree.root.tick();
             let treeAsString = JSON.stringify(tree);
             let treeAsJson = JSON.parse(treeAsString);
             // when
-            let actualTree = btree.BehaviorTree.fromJson(treeAsJson);
+            let actualTree = BehaviorTree.fromJson(treeAsJson);
             actualTree.root.tick();
             // then
-            expect(actualTree.root.status()).equal(btree.SUCCESS, "condition value should be SUCCESS");
+            expect(actualTree.root.status()).equal(SUCCESS, "condition value should be SUCCESS");
         });
 
         it('re-hydrates a running action from JSON with correct status', () => {
             let actionName = 'action1';
-            let tree = btree.parse(`[${actionName}]`);
-            tree.setActionStatus(actionName, btree.RUNNING);
+            let tree = parse(`[${actionName}]`);
+            tree.setActionStatus(actionName, RUNNING);
             tree.root.tick();
             let treeAsString = JSON.stringify(tree);
             let treeAsJson = JSON.parse(treeAsString);
             // when
-            let actualTree = btree.BehaviorTree.fromJson(treeAsJson);
+            let actualTree = BehaviorTree.fromJson(treeAsJson);
             actualTree.root.tick();
             // then
-            expect(actualTree.root.status()).equal(btree.RUNNING, "action status should be RUNNING");
+            expect(actualTree.root.status()).equal(RUNNING, "action status should be RUNNING");
             expect(actualTree.root.active()).equal(true, "action status should be 'active'");
         });
     });
 
     describe('#tick', () => {
         it('notify about action activation when ticked', () => {
-            let action1 = btree.action("action1");
-            let tree = new btree.BehaviorTree(action1, 0, undefined);
+            let action1 = action("action1");
+            let tree = new BehaviorTree(action1, 0, undefined);
             // when
             let actualActivatedAction = null;
             tree.onActionActivation(actionNode => actualActivatedAction = actionNode);
             tree.root.tick();
             // then
-            expect(tree.root.status()).equal(btree.RUNNING);
+            expect(tree.root.status()).equal(RUNNING);
             expect(tree.root.active()).equal(true);
             expect(actualActivatedAction).equal(tree.root);
         });
 
         it('notify about action activation when ticked (in parsed tree)', () => {
-            let tree = btree.parse(`[a]`);
-            expect(tree.root.kind).to.be.equal(btree.ACTION);
+            let tree = parse(`[a]`);
+            expect(tree.root.kind).to.be.equal(ACTION);
             // when
             let actualActivatedAction = null;
             tree.onActionActivation(actionNode => actualActivatedAction = actionNode);
             tree.root.tick();
             // then
-            expect(tree.root.status()).equal(btree.RUNNING);
+            expect(tree.root.status()).equal(RUNNING);
             expect(tree.root.active()).equal(true);
             expect(actualActivatedAction).equal(tree.root);
         });
 
         it('notify about action activation when ticked (in JSON tree)', () => {
-            let tree = btree.BehaviorTree.fromJson(JSON.parse(`{
+            let tree = BehaviorTree.fromJson(JSON.parse(`{
                 "root":{
                     "name": "Avoid Ghost",
                     "kind": "action",
@@ -283,20 +288,20 @@ describe("BehaviorTree", () => {
                     "hasNot": false
                 }
             }`));
-            expect(tree.root.kind).to.be.equal(btree.ACTION);
+            expect(tree.root.kind).to.be.equal(ACTION);
             // when
             let actualActivatedAction = null;
             tree.onActionActivation(actionNode => actualActivatedAction = actionNode);
             tree.root.tick();
             // then
-            expect(tree.root.status()).equal(btree.RUNNING);
+            expect(tree.root.status()).equal(RUNNING);
             expect(tree.root.active()).equal(true);
             expect(actualActivatedAction).equal(tree.root);
         });
 
 
         it('executes a sample parsed tree', () => {
-            let tree = btree.parse(`
+            let tree = BehaviorTree.fromText(`
             ?
             |   !(have hunger)
             |   [eat]`);
@@ -305,32 +310,32 @@ describe("BehaviorTree", () => {
             tree.onActionActivation(actionNode => {
                 switch (actionNode.name) {
                     case 'eat':
-                        console.log(btree.getFriendlyStatus(actionNode.status())); // prints 'running'
+                        console.log(getFriendlyStatus(actionNode.status())); // prints 'running'
                         if (actionNode.active()) { // in general we should check that the action is in an active branch
                             console.log('Started eating...');
                             // no longer hungry!
-                            tree.setConditionStatus('have hunger', btree.FAILED);
+                            tree.setConditionStatus('have hunger', FAILED);
                             console.log('Done eating...');
-                            tree.setActionStatus('eat', btree.SUCCESS);
+                            tree.setActionStatus('eat', SUCCESS);
                         }
                 }
             });
             tree.root.tick();
-            
+
             console.log('Initial state:');
-            console.log(btree.getFriendlyStatus(tree.root.status())); // prints 'success'
+            console.log(getFriendlyStatus(tree.root.status())); // prints 'success'
             console.log(tree.root.active()); // prints true
-            
+
             // then we get hunger
-            tree.setConditionStatus('have hunger', btree.SUCCESS);
+            tree.setConditionStatus('have hunger', SUCCESS);
             let statusAfterHungerIsTrue = tree.root.tick();
-            console.log(btree.getFriendlyStatus(statusAfterHungerIsTrue)); // prints 'success', because the action was executed synchronously as part of the tick
+            console.log(getFriendlyStatus(statusAfterHungerIsTrue)); // prints 'success', because the action was executed synchronously as part of the tick
 
             // now 'Eating...' should be printed
 
             // final state:
             tree.root.tick();
-            console.log(btree.getFriendlyStatus(tree.root.status())); // prints 'success'
+            console.log(getFriendlyStatus(tree.root.status())); // prints 'success'
         });
 
         it('executes a sample coded tree', () => {
@@ -339,13 +344,13 @@ describe("BehaviorTree", () => {
             let onEat = function (actionNode) {
                 switch (actionNode.name) {
                     case 'eat':
-                        console.log(btree.getFriendlyStatus(actionNode.status())); // prints 'running'
+                        console.log(getFriendlyStatus(actionNode.status())); // prints 'running'
                         if (actionNode.active()) { // in general we should check that the action is in an active branch
                             console.log('Started eating...');
                             // no longer hungry!
-                            tree.setConditionStatus('have hunger', btree.FAILED);
+                            tree.setConditionStatus('have hunger', FAILED);
                             console.log('Done eating...');
-                            tree.setActionStatus('eat', btree.SUCCESS);
+                            tree.setActionStatus('eat', SUCCESS);
                         }
                 }
             };
@@ -354,28 +359,28 @@ describe("BehaviorTree", () => {
             // |   !(have hunger)
             // |   [eat]`
 
-            let rootNode = btree.fallback([
-                btree.condition("have hunger", true),
-                btree.action("eat", onEat)
+            let rootNode = fallback([
+                condition("have hunger", true),
+                action("eat", onEat)
             ]);
-            let tree = new btree.BehaviorTree(rootNode);
+            let tree = new BehaviorTree(rootNode);
 
             tree.root.tick();
-            
+
             console.log('Initial state:');
-            console.log(btree.getFriendlyStatus(tree.root.status())); // prints 'success'
+            console.log(getFriendlyStatus(tree.root.status())); // prints 'success'
             console.log(tree.root.active()); // prints true
-            
+
             // then we get hunger
-            tree.setConditionStatus('have hunger', btree.SUCCESS);
+            tree.setConditionStatus('have hunger', SUCCESS);
             let statusAfterHungerIsTrue = tree.root.tick();
-            console.log(btree.getFriendlyStatus(statusAfterHungerIsTrue)); // prints 'success', because the action was executed synchronously as part of the tick
+            console.log(getFriendlyStatus(statusAfterHungerIsTrue)); // prints 'success', because the action was executed synchronously as part of the tick
 
             // now 'Eating...' should be printed
 
             // final state:
             tree.root.tick();
-            console.log(btree.getFriendlyStatus(tree.root.status())); // prints 'success'
+            console.log(getFriendlyStatus(tree.root.status())); // prints 'success'
         });
 
     });
@@ -383,24 +388,24 @@ describe("BehaviorTree", () => {
 
 describe('#fallback', () => {
     it('resolves to FAILED when no children', () => {
-        let tree = btree.parse(`?`);
+        let tree = parse(`?`);
         expect(tree.root).to.be.not.null;
-        expect(tree.root.kind).to.be.equal(btree.FALLBACK);
+        expect(tree.root.kind).to.be.equal(FALLBACK);
         // when
         tree.root.tick();
-        expect(tree.root.status()).equal(btree.FAILED);
+        expect(tree.root.status()).equal(FAILED);
     });
 });
 
 describe('Action', () => {
     describe('#tick', () => {
         it('runs action when ticked', () => {
-            let action1 = btree.action("action1", actionNode => actualActivatedAction = actionNode);
+            let action1 = action("action1", actionNode => actualActivatedAction = actionNode);
             // when
             let actualActivatedAction = null;
             action1.tick();
             // then
-            expect(action1.status()).equal(btree.RUNNING);
+            expect(action1.status()).equal(RUNNING);
             expect(action1.active()).equal(true);
             expect(action1.wasActive).equal(false);
             expect(actualActivatedAction).deep.equal(action1);
@@ -409,20 +414,20 @@ describe('Action', () => {
 
     describe('#wasActive', () => {
         it('re-activates previously active action', () => {
-            let action1 = btree.action("action1", actionNode => actualActivatedActions.push(actionNode));
+            let action1 = action("action1", actionNode => actualActivatedActions.push(actionNode));
             // when
             let actualActivatedActions = [];
             action1.tick();
             // then
-            expect(action1.status()).equal(btree.RUNNING);
+            expect(action1.status()).equal(RUNNING);
             expect(action1.active()).equal(true);
             expect(action1.wasActive).equal(false);
             expect(actualActivatedActions).contains(action1);
             // when .. action is finished
-            action1.setStatus(btree.FINISHED);
+            action1.setStatus(FINISHED);
             action1.deactivate(); // simulate that another tree branch became active
             // then
-            expect(action1.status()).equal(btree.FINISHED);
+            expect(action1.status()).equal(FINISHED);
             expect(action1.active()).equal(false);
             expect(action1.wasActive).equal(true);
         });

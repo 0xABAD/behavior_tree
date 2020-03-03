@@ -144,11 +144,16 @@ node will be _failed_; otherwise, it will be considered _running_.
 The `BehaviorTree` may be used programmatically to execute the behavior modeled in the tree:
 
 ```javascript
-let btree = require('./btree').bt;
+const { BehaviorTree,
+    Fallback, Sequence, Parallel, Action, Condition,
+    FALLBACK, SEQUENCE, PARALLEL, ACTION, CONDITION,
+    fallback, sequence, parallel, action, condition,
+    SUCCESS, FAILED, RUNNING, FINISHED,
+    SAMPLE_TREE, getFriendlyStatus } = require('../btree').bt;
 ```
 
 ```javascript
-let tree = btree.parse(`
+let tree = BehaviorTree.fromText(`
 ?
 |   !(have hunger)
 |   [eat]`);
@@ -157,32 +162,32 @@ let tree = btree.parse(`
 tree.onActionActivation(actionNode => {
     switch (actionNode.name) {
         case 'eat':
-            console.log(btree.getFriendlyStatus(actionNode.status())); // prints 'running'
+            console.log(getFriendlyStatus(actionNode.status())); // prints 'running'
             if (actionNode.active()) { // in general we should check that the action is in an active branch
                 console.log('Started eating...');
                 // no longer hungry!
-                tree.setConditionStatus('have hunger', btree.FAILED);
+                tree.setConditionStatus('have hunger', FAILED);
                 console.log('Done eating...');
-                tree.setActionStatus('eat', btree.SUCCESS);
+                tree.setActionStatus('eat', SUCCESS);
             }
     }
 });
 tree.root.tick();
 
 console.log('Initial state:');
-console.log(btree.getFriendlyStatus(tree.root.status())); // prints 'success'
+console.log(getFriendlyStatus(tree.root.status())); // prints 'success'
 console.log(tree.root.active()); // prints true
 
 // then we get hunger
-tree.setConditionStatus('have hunger', btree.SUCCESS);
+tree.setConditionStatus('have hunger', SUCCESS);
 let statusAfterHungerIsTrue = tree.root.tick();
-console.log(btree.getFriendlyStatus(statusAfterHungerIsTrue)); // prints 'success', because the action was executed synchronously as part of the tick
+console.log(getFriendlyStatus(statusAfterHungerIsTrue)); // prints 'success', because the action was executed synchronously as part of the tick
 
 // now 'Started/Done eating...' should be printed
 
 // final state:
 tree.root.tick();
-console.log(btree.getFriendlyStatus(tree.root.status())); // prints 'success'
+console.log(getFriendlyStatus(tree.root.status())); // prints 'success'
 ```
 
 This approach allows the separation between the tree model and the action implementation.
@@ -196,13 +201,13 @@ Another way to use the `BehaviorTree` is to programmatically construct the tree 
 let onEat = function (actionNode) {
     switch (actionNode.name) {
         case 'eat':
-            console.log(btree.getFriendlyStatus(actionNode.status())); // prints 'running'
+            console.log(getFriendlyStatus(actionNode.status())); // prints 'running'
             if (actionNode.active()) { // in general we should check that the action is in an active branch
                 console.log('Started eating...');
                 // no longer hungry!
-                tree.setConditionStatus('have hunger', btree.FAILED);
+                tree.setConditionStatus('have hunger', FAILED);
                 console.log('Done eating...');
-                tree.setActionStatus('eat', btree.SUCCESS);
+                tree.setActionStatus('eat', SUCCESS);
             }
     }
 };
@@ -211,9 +216,9 @@ let onEat = function (actionNode) {
 // |   !(have hunger)
 // |   [eat]`
 
-let rootNode = btree.fallback([
-    btree.condition("have hunger", true),
-    btree.action("eat", onEat)
+let rootNode = fallback([
+    condition("have hunger", true),
+    action("eat", onEat)
 ]);
-let tree = new btree.BehaviorTree(rootNode);
+let tree = new BehaviorTree(rootNode);
 ```

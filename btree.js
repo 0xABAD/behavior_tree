@@ -459,6 +459,14 @@ class BehaviorTree {
 
         return node;
     }
+
+    /**
+     * Parses behavior tree from text.
+     * @param {string} treeAsText behavior tree textual spec
+     */
+    static fromText(treeAsText) {
+        return parse(treeAsText);
+    }
 }
 
 /**
