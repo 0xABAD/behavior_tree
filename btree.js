@@ -373,6 +373,17 @@ class BehaviorTree {
         }
         // subscribe to all action nodes in this tree activations
         this.actions.forEach(actions => actions.forEach(a => a.onActivation(this.onAnyActionActivation)));
+        this._id = 0;
+    }
+
+    /** @param {number} id tree ID tag */
+    setId(id) {
+        this._id = id;
+    }
+
+    /** @returns {number} tree ID tag */
+    getId() {
+        return this._id;
     }
 
     /**
@@ -397,7 +408,9 @@ class BehaviorTree {
      * @param {number} status new status
      */
     setConditionStatus(name, status) {
-        this.conditions.get(name).forEach((/** @type {Condition} */ c) => c.setStatus(status));
+        if (this.conditions.has(name)) {
+            this.conditions.get(name).forEach((/** @type {Condition} */ c) => c.setStatus(status));
+        }
     }
 
     /**
@@ -406,7 +419,9 @@ class BehaviorTree {
      * @param {number} status new status
      */
     setActionStatus(name, status) {
-        this.actions.get(name).forEach((/** @type {Action} */ a) => a.setStatus(status));
+        if (this.actions.has(name)) {
+            this.actions.get(name).forEach((/** @type {Action} */ a) => a.setStatus(status));
+        }
     }
 
     /**
@@ -466,6 +481,12 @@ class BehaviorTree {
      */
     static fromText(treeAsText) {
         return parse(treeAsText);
+    }
+
+    tick() {
+        if (this.root) {
+            this.root.tick();
+        }
     }
 }
 

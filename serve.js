@@ -6,7 +6,7 @@ let cors = require('cors');
 let fs = require('fs');
 const yargs = require('yargs');
 const http = require('http');
-const { BehaviorTree, parse, Action, SUCCESS, FAILED } = require('./btree').bt;
+const { BehaviorTree, Action, SUCCESS, FAILED } = require('./btree').bt;
 
 const argv = yargs
     .option('config', {
@@ -31,11 +31,18 @@ if (argv.config) {
 }
 
 let downstreamControlSystemUrl = argv.downstream;
+console.log(`Downstream system: ${downstreamControlSystemUrl}`);
 
 let app = express();
 let port = argv.port || process.env.PORT || 16461;
 
+/** @type {Map<string, BehaviorTree>} keeps track of all the active trees mapping actionName -> tree */
 let trees = new Map();
+
+/** @type {Map<number, string>} keeps track of all the active trees mapping actionName -> tree */
+let treeOwners = new Map();
+
+let treeCounter = 0;
 
 app.use(bodyParser.json());
 
@@ -76,11 +83,10 @@ app.get('/tree/:fullActionName/status', (req, res, next) => {
 });
 
 app.post('/start', (req, res, next) => {
+    // console.log(`Starting: ${JSON.stringify(req.body)}`);
+    let owner = req.body['ToActor'];
     let actionName = req.body['Action'];
-    let parameters = req.body['Params'];
-    let fullActionName = parameters.length ?
-        `${actionName} ${parameters.join(' ')}` :
-        actionName;
+    let fullActionName = createFullActionName(req.body);
 
     if (trees.has(fullActionName)) {
         res.status(409).send(`Action '${fullActionName}' is already running. Self-overlapping actions are not supported.`);
@@ -89,27 +95,49 @@ app.post('/start', (req, res, next) => {
 
     console.log(`Starting action ${fullActionName}`);
 
-    let treeFileName = actionToBehaviorTreeMap[actionName] || actionName + '.tree';
-    fs.readFile(treeFileName, { encoding: 'utf8' }, (err, data) => {
-        if (err) {
-            console.error(`Could not load file ${treeFileName}.`);
-            res.status(404).end();
-        }
-        else {
-            console.log(`Loaded ${treeFileName}.`);
-            let tree = parse(data);
-            tree.onActionActivation((/** @type {Action} */ action) => startAction(tree, action));
-            console.log(JSON.stringify(tree));
-            trees.set(fullActionName, tree);
-            res.status(202).end();
-        }
-    });
+    if (actionToBehaviorTreeMap && actionToBehaviorTreeMap[actionName] ||
+        fs.existsSync(actionName + '.tree')) {
+        // tree is specified for this action or implicit mapping to file name exists
+        let treeFileName = actionToBehaviorTreeMap[actionName] || actionName + '.tree';
+        fs.readFile(treeFileName, { encoding: 'utf8' }, (err, data) => {
+            if (err) {
+                console.error(`Could not load file '${treeFileName}'.`);
+                res.status(404).end();
+            }
+            else {
+                console.log(`Loaded ${treeFileName}.`);
+                let tree = BehaviorTree.fromText(data);
+                if (tree.error) {
+                    console.log(`Invalid tree in ${treeFileName}: ${data}`);
+                    res.status(500).end();
+                }
+                else {
+                    tree.onActionActivation((/** @type {Action} */ action) => startAction(tree, action));
+                    tree.setId(treeCounter++);
+                    // console.log(JSON.stringify(tree));
+                    trees.set(fullActionName, tree);
+                    treeOwners.set(tree.getId(), owner)
+                    res.status(202).end();
+                    // activate the tree
+                    tree.tick();
+                }
+            }
+        });
+    }
+    else {
+        // no tree is available for this action, pass it downstream
+        sendActionStartDownstream(owner, actionName);
+    }
 });
 
 app.post('/stop', (req, res, next) => {
     let actionName = req.body['Action'];
-    let parameters = req.body['Params'];
-    console.log(`Stopping action ${actionName} ${parameters.join(' ')}`);
+    let fullActionName = createFullActionName(req.body);
+    console.log(`Stopping action ${fullActionName}`);
+    if (trees.has(fullActionName)) {
+        trees.delete(fullActionName);
+        // todo: perhaps a message to the downstream system?
+    }
     res.status(202).end();
 });
 
@@ -122,14 +150,36 @@ app.post('/update', (req, res) => {
     res.status(202).end();
 });
 
+var plans = [];
+
 app.post("/planupdate", (req, res) => {
-    console.log(`Updated plan ${JSON.stringify(req.body)}`);
+    console.log(`Updated plan(s): ${req.body.map(p => p.Name).join(', ')}`);
+    req.body.forEach(plan => {
+        plans[plan["PlanID"]] = plan;
+    });
     res.status(202).end();
 });
 
+// temporarily, let's serve plans
+app.options('/plans', cors({ origin: "*" }));
+app.get("/plans", cors({ origin: "*" }), (req, res) => {
+    res.json(plans);
+});
 
 app.listen(port, () => console.log('Listening on port: ' + port))
     .on("error", err => console.error(err));
+
+/**
+ * Creates a full action name
+ * @param {any} action action JSON
+ */
+function createFullActionName(action) {
+    let actionName = action['Action'];
+    let parameters = action['Params'];
+    return parameters.length ?
+        `${actionName} ${parameters.join(' ')}` :
+        actionName;
+}
 
 /**
  * Updates the tree with changed values
@@ -169,37 +219,43 @@ function conditionValueToStatus(value) {
  */
 function startAction(tree, action) {
     if (action.active()) {
-        const actionStartJson = {
-            "ToActor": "downstream",
-            "FromActor": "",
-            "Action": action.name,
-            "Params": [
-                // {
-                //     "Name": "world",
-                //     "Type": "thing",
-                //     "Value": 1
-                // },
-            ],
-        }
-        const actionStartText = JSON.stringify(actionStartJson);
-        const req = http.request(downstreamControlSystemUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Content-Length': actionStartText.length
-            }
-        }, res => {
-            if (res.statusCode >= 300) {
-                console.error(`Action start failed by ${downstreamControlSystemUrl} with code ${res.statusCode}.`);
-            }
-        }).on('error', err => {
-            console.error(`Action start failed with error ${err}.`);
-        });
-
-        req.write(actionStartText)
-        req.end();
+        let toActor = treeOwners.get(tree.getId());
+        sendActionStartDownstream(toActor, action.name);
     }
 }
+
+function sendActionStartDownstream(toActor, actionName) {
+    const actionStartJson = {
+        "ToActor": toActor,
+        "FromActor": "",
+        "Action": actionName,
+        "Params": [
+            // {
+            //     "Name": "world",
+            //     "Type": "thing",
+            //     "Value": 1
+            // },
+        ],
+    }
+    const actionStartText = JSON.stringify(actionStartJson);
+    const req = http.request(downstreamControlSystemUrl + '/start', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': actionStartText.length
+        }
+    }, res => {
+        if (res.statusCode >= 300) {
+            console.error(`Action start failed by ${downstreamControlSystemUrl} with code ${res.statusCode}.`);
+        }
+    }).on('error', err => {
+        console.error(`Action start failed with error ${err}.`);
+    });
+
+    req.write(actionStartText)
+    req.end();
+}
+
 
 //https://2ality.com/2015/08/es6-map-json.html
 function strMapToObj(strMap) {
