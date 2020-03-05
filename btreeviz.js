@@ -1,3 +1,9 @@
+
+if (typeof (require) === typeof (Function)) {
+    // only load the dependency during development time to get dev support
+    d3 = require("d3@^5.8")
+}
+
 /**
  * Render _root_ inside the _parent_ DOM node with a viewbox width
  * of _width_.  _x0_ and _x1_ are used to determine the vertical height
