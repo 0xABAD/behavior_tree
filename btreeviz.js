@@ -79,7 +79,7 @@ function renderTree(parent, root, width, x0, x1) {
     }
 
     node.each(function(d) {
-        let active = d.data.active,
+        let active = d.data.active(),
             k      = d.data.kind;
 
         if (k == SEQUENCE || k == FALLBACK || k == PARALLEL) {

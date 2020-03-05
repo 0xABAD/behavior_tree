@@ -39,10 +39,18 @@ let port = argv.port || process.env.PORT || 16461;
 /** @type {Map<string, BehaviorTree>} keeps track of all the active trees mapping actionName -> tree */
 let trees = new Map();
 
+/** Incremental counter of trees. Used to assign a unique ID to each tree. */
+let treeCounter = 0;
+
 /** @type {Map<number, string>} keeps track of all the active trees mapping actionName -> tree */
 let treeOwners = new Map();
 
-let treeCounter = 0;
+var plans = [];
+
+
+/** @type {Map<string, boolean|number>} State representation. */
+const state = new Map();
+
 
 app.use(bodyParser.json());
 
@@ -112,14 +120,8 @@ app.post('/start', (req, res, next) => {
                     res.status(500).end();
                 }
                 else {
-                    tree.onActionActivation((/** @type {Action} */ action) => startAction(tree, action));
-                    tree.setId(treeCounter++);
-                    // console.log(JSON.stringify(tree));
-                    trees.set(fullActionName, tree);
-                    treeOwners.set(tree.getId(), owner)
+                    activate(owner, fullActionName, tree);
                     res.status(202).end();
-                    // activate the tree
-                    tree.tick();
                 }
             }
         });
@@ -130,10 +132,35 @@ app.post('/start', (req, res, next) => {
     }
 });
 
+/**
+ * Initializes the tree
+ * @param {string} owner 
+ * @param {string} fullActionName 
+ * @param {BehaviorTree} tree 
+ */
+function activate(owner, fullActionName, tree) {
+    tree.onActionActivation((/** @type {Action} */ action) => startAction(tree, action));
+    tree.setId(treeCounter++);
+    // update the initial state of the tree to reflect the current state
+    [...tree.conditions.keys()].forEach(conditionName => {
+        
+        if (state.has(conditionName)) {
+            let value = state.get(conditionName);
+            let status = conditionValueToStatus(value);
+            tree.setConditionStatus(conditionName, status);
+        }
+    });
+    // console.log(JSON.stringify(tree));
+    trees.set(fullActionName, tree);
+    treeOwners.set(tree.getId(), owner)
+    // activate the tree
+    tree.tick();
+}
+
 app.post('/stop', (req, res, next) => {
     let actionName = req.body['Action'];
     let fullActionName = createFullActionName(req.body);
-    console.log(`Stopping action ${fullActionName}`);
+    console.log(`Stopping action ${fullActionName}: ${JSON.stringify(req.body)}`);
     if (trees.has(fullActionName)) {
         trees.delete(fullActionName);
         // todo: perhaps a message to the downstream system?
@@ -145,12 +172,11 @@ app.post('/update', (req, res) => {
     let atomicsValues = req.body['Atomics'];
     console.log(`Updated atomics values ${JSON.stringify(atomicsValues)}`);
 
+    updateState(atomicsValues);
     trees.forEach(tree => updateTree(tree, atomicsValues));
 
     res.status(202).end();
 });
-
-var plans = [];
 
 app.post("/planupdate", (req, res) => {
     console.log(`Updated plan(s): ${req.body.map(p => p.Name).join(', ')}`);
@@ -192,6 +218,18 @@ function updateTree(tree, conditionValues) {
         let value = conditionValues[conditionName];
         let status = conditionValueToStatus(value);
         tree.setConditionStatus(conditionName, status);
+    });
+}
+
+/**
+ * Updates state cache.
+ * @param {Map<string, number | boolean>} conditionValues new condition values 
+ * @returns {void}
+ */
+function updateState(conditionValues) {
+    Object.keys(conditionValues).forEach(conditionName => {
+        let value = conditionValues[conditionName];
+        state.set(conditionName, value);
     });
 }
 
