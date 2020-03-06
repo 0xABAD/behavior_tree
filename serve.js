@@ -160,7 +160,7 @@ function activate(owner, fullActionName, tree) {
 app.post('/stop', (req, res, next) => {
     let actionName = req.body['Action'];
     let fullActionName = createFullActionName(req.body);
-    console.log(`Stopping action ${fullActionName}: ${JSON.stringify(req.body)}`);
+    console.log(`Stopping action '${fullActionName}'`);
     if (trees.has(fullActionName)) {
         trees.delete(fullActionName);
         // todo: perhaps a message to the downstream system?
@@ -181,7 +181,9 @@ app.post('/update', (req, res) => {
 app.post("/planupdate", (req, res) => {
     console.log(`Updated plan(s): ${req.body.map(p => p.Name).join(', ')}`);
     req.body.forEach(plan => {
-        plans[plan["PlanID"]] = plan;
+        if (plan) {
+            plans[plan["PlanID"]] = plan;
+        }
     });
     res.status(202).end();
 });
