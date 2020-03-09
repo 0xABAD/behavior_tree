@@ -45,9 +45,6 @@ let treeCounter = 0;
 /** @type {Map<number, string>} keeps track of all the active trees mapping actionName -> tree */
 let treeOwners = new Map();
 
-var plans = [];
-
-
 /** @type {Map<string, boolean|number>} State representation. */
 const state = new Map();
 
@@ -178,22 +175,6 @@ app.post('/update', (req, res) => {
     res.status(202).end();
 });
 
-app.post("/planupdate", (req, res) => {
-    console.log(`Updated plan(s): ${req.body.map(p => p.Name).join(', ')}`);
-    req.body.forEach(plan => {
-        if (plan) {
-            plans[plan["PlanID"]] = plan;
-        }
-    });
-    res.status(202).end();
-});
-
-// temporarily, let's serve plans
-app.options('/plans', cors({ origin: "*" }));
-app.get("/plans", cors({ origin: "*" }), (req, res) => {
-    res.json(plans);
-});
-
 app.listen(port, () => console.log('Listening on port: ' + port))
     .on("error", err => console.error(err));
 
@@ -217,9 +198,11 @@ function createFullActionName(action) {
  */
 function updateTree(tree, conditionValues) {
     Object.keys(conditionValues).forEach(conditionName => {
-        let value = conditionValues[conditionName];
-        let status = conditionValueToStatus(value);
-        tree.setConditionStatus(conditionName, status);
+        if (tree.conditions.has(conditionName)) {
+            let value = conditionValues[conditionName];
+            let status = conditionValueToStatus(value);
+            tree.setConditionStatus(conditionName, status);
+        }
     });
 }
 
