@@ -126,6 +126,7 @@ app.post('/start', (req, res, next) => {
     else {
         // no tree is available for this action, pass it downstream
         sendActionStartDownstream(owner, actionName);
+        res.status(202).end();
     }
 });
 
