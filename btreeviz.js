@@ -1,6 +1,19 @@
-// Render _root_ inside the _parent_ DOM node with a viewbox width
-// of _width_.  _x0_ and _x1_ are used to determine the vertical height
-// of the tree inside the viewbox.
+
+if (typeof (require) === typeof (Function)) {
+    // only load the dependency during development time to get dev support
+    d3 = require("d3@^5.8")
+}
+
+/**
+ * Render _root_ inside the _parent_ DOM node with a viewbox width
+ * of _width_.  _x0_ and _x1_ are used to determine the vertical height
+ * of the tree inside the viewbox.
+ * @param {string} parent HTML element type
+ * @param {Rl} root D3 hierarchy tree root node
+ * @param {number} width 
+ * @param {number} x0 
+ * @param {number} x1 
+ */
 function renderTree(parent, root, width, x0, x1) {
     function translate(tree) {
         let x = tree.dy + tree.drag_dx,
@@ -66,7 +79,7 @@ function renderTree(parent, root, width, x0, x1) {
     }
 
     node.each(function(d) {
-        let active = d.data.active,
+        let active = d.data.active(),
             k      = d.data.kind;
 
         if (k == SEQUENCE || k == FALLBACK || k == PARALLEL) {
@@ -163,24 +176,6 @@ function renderTree(parent, root, width, x0, x1) {
     });
 }
 
-/**
- * Gets friendly status
- * @param {number} status tree node status
- * @returns {string} user-friendly status string
- */
-function getFriendlyStatus(status) {
-    switch (status) {
-        case FAILED:
-            return 'Failed';
-        case SUCCESS:
-            return 'Success';
-        case RUNNING:
-            return 'Running';
-        default:
-            return 'Unknown';
-    }
-}
-
 function clamp(val, min, max) {
     if (val < min) {
         return min;
@@ -201,8 +196,8 @@ function windowSize() {
     return [x, y];
 }
 
-function showError(message) {
-    d3.select('main')
+function showError(message, parent) {
+    d3.select(parent)
             .html('')
             .append('div')
             .classed('tree-error__container', true)
@@ -214,19 +209,27 @@ function showError(message) {
 /**
  * Parses and shows the supplied tree.
  * @param {string} str behavior tree as string
+ * @param {string} parent name of hosting HTML element
+ * @returns {void}
  */
-function loadTree(str) {
+function loadTree(str, parent) {
     let tree = parse(str),
         line = tree.line;
     if (tree.error) {
-        showError(`Line ${line}: ${tree.error}`);
+        showError(`Line ${line}: ${tree.error}`, parent);
         return;
     }
 
-    showTree(tree);
+    showTree(tree, parent);
 }
 
-function showTree(tree) {
+/**
+ * Populates the page with the behavior _tree_ and condition and action control elements.
+ * @param {BehaviorTree} tree behavior tree
+ * @param {string} parent name of hosting HTML element
+ * @returns {void}
+ */
+function showTree(tree, parent) {
     let x0   = Infinity,
         x1   = -x0,
         data = d3.hierarchy(tree.root),
@@ -257,7 +260,7 @@ function showTree(tree) {
         render();
     });
 
-    d3.select('main')
+    d3.select(parent)
         .on('wheel', function() {
             let e = d3.event;
             let up = false;
@@ -285,7 +288,7 @@ function showTree(tree) {
     let conds = d3.select('#tree-conditions')
         .html('')
         .selectAll('a')
-        .data(Object.keys(tree.conditions).sort())
+        .data([...tree.conditions.keys()].sort())
         .enter()
         .append('a')
         .classed('mdl-navigation__link', true);
@@ -320,7 +323,7 @@ function showTree(tree) {
     let actions = d3.select('#tree-actions')
         .html('')
         .selectAll('a')
-        .data(Object.keys(tree.actions).sort())
+        .data([...tree.actions.keys()].sort())
         .enter()
         .append('a')
         .classed('mdl-navigation__link tree-action', true);
@@ -381,17 +384,14 @@ function showTree(tree) {
     });
 
     function render() {
-        // if (typeof (root.data.deactivate) === 'function') {
-            // let's only 'tick' trees that have not been loaded over http from a behavior tree service
-            root.data.deactivate();
-            root.data.tick();
-        // }
-        renderTree('main', root, width, x0, x1);
+        root.data.deactivate();
+        root.data.tick();
+        renderTree(parent, root, width, x0, x1);
     }
     render();
 }
 
-function main() {
+function main(parentElement) {
     let treeSelect = document.getElementById('treeFileSelect'),
         treeInput  = document.getElementById('treeFileInput');
 
@@ -401,7 +401,7 @@ function main() {
         }
         let reader = new FileReader();
         reader.onload = function(e) {
-            loadTree(e.target.result);
+            loadTree(e.target.result, parentElement);
         };
         reader.readAsText(this.files[0]);
     }, false);
@@ -424,5 +424,5 @@ function main() {
             card.style('visibility', viz);
         });
 
-    loadTree(SAMPLE_TREE);
+    loadTree(SAMPLE_TREE, parentElement);
 }
