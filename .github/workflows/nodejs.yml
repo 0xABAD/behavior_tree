@@ -24,8 +24,10 @@ jobs:
         CI: true
 
   publish:
+    needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
       - name: Use Node.js 10.x
         uses: actions/setup-node@v1
         with:
@@ -34,3 +36,4 @@ jobs:
       - run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+        continue-on-error: true
