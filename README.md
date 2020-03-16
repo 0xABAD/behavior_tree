@@ -4,6 +4,7 @@ A simple implementation of a behavior tree with a demo that can be
 played with [here](http://0xABAD.github.io/behavior_tree).
 
 ![CI](https://github.com/jan-dolejsi/behavior_tree/workflows/Node.js%20CI/badge.svg)
+![npm](https://img.shields.io/npm/v/behavior_tree_service)
 
 ## Introduction
 
