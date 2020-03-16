@@ -7,7 +7,7 @@
         "Behavior",
         "Automation"
     ],
-    "version": "0.0.1",
+    "version": "1.0.0",
     "main": "index.js",
     "bin": "serve.js",
     "repository": "https://github.com/jan-dolejsi/behavior_tree",
