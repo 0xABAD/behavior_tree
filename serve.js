@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 //@ts-check
 
 let express = require('express');

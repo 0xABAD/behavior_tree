@@ -1,4 +1,18 @@
 {
+    "name": "behavior_tree",
+    "description": "A behavior tree implementation that separates model logic from action implementation and provides behavior-tree-as-a-service. Try the [interactive demo](http://0xABAD.github.io/behavior_tree). This is obviously based on [Dan Abad](https://github.com/0xABAD/)'s work.",
+    "keywords": [
+        "AI",
+        "Robotics",
+        "Behavior",
+        "Automation"
+    ],
+    "version": "0.0.1",
+    "main": "index.js",
+    "bin": "serve.js",
+    "repository": "https://github.com/jan-dolejsi/behavior_tree",
+    "license": "MIT",
+    "author": "Dan Abad, Jan Dolejsi",
     "scripts": {
         "test": "mocha",
         "check": "tsc btree.js --allowJS --checkJS --noEmit --lib ES2015"

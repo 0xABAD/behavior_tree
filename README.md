@@ -222,3 +222,31 @@ let rootNode = fallback([
 ]);
 let tree = new BehaviorTree(rootNode);
 ```
+
+## Using BehaviorTree as a NPM package
+
+Both the `BehaviorTree` library and the service are available via NPM.
+
+### NPM library
+
+```bash
+npm install behavior_tree
+```
+
+```javascript
+const bt = require('behavior_tree');
+
+let tree = bt.BehaviorTree.fromText(`-->
+|   (condition)
+`);
+
+console.log(tree);
+```
+
+### NPM service
+
+```bash
+npm install behavior_tree -g
+
+behavior_tree --help
+```
