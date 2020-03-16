@@ -1,5 +1,5 @@
 {
-    "name": "behavior_tree",
+    "name": "@jan_dolejsi/behavior_tree",
     "description": "A behavior tree implementation that separates model logic from action implementation and provides behavior-tree-as-a-service. Try the [interactive demo](http://0xABAD.github.io/behavior_tree). This is obviously based on [Dan Abad](https://github.com/0xABAD/)'s work.",
     "keywords": [
         "AI",
