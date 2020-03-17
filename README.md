@@ -3,8 +3,8 @@
 A simple implementation of a behavior tree with a demo that can be
 played with [here](http://0xABAD.github.io/behavior_tree).
 
-![CI](https://github.com/jan-dolejsi/behavior_tree/workflows/Node.js%20CI/badge.svg)
-![npm](https://img.shields.io/npm/v/behavior_tree_service)
+[![CI](https://github.com/jan-dolejsi/behavior_tree/workflows/CI/badge.svg)](https://github.com/jan-dolejsi/behavior_tree/actions?query=workflow%3ACI)
+[![npm](https://img.shields.io/npm/v/behavior_tree_service)](https://www.npmjs.com/package/behavior_tree_service)
 
 ## Introduction
 
@@ -253,3 +253,14 @@ npm install behavior_tree -g
 
 behavior_tree --help
 ```
+
+### In your web page
+
+You can import the java script in your web page by importing it this way:
+
+```html
+<script defer src="https://unpkg.com/behavior_tree_service@1.0.0/btree.js"></script>
+<script defer src="https://unpkg.com/behavior_tree_service@1.0.0/btreeviz.js"></script>
+```
+
+The example usage can be seen in the `index.html` in this repository.
