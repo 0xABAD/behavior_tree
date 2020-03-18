@@ -16,7 +16,7 @@ const argv = yargs
     })
     .option('port', {
         description: 'Port number on which to listen',
-        type: 'count',
+        type: 'number',
     })
     .option('downstream', {
         description: 'Downstream control system or simulator URL to call when BT activates an action',
