@@ -233,11 +233,11 @@ Both the `BehaviorTree` library and the service are available via NPM.
 ### NPM library
 
 ```bash
-npm install behavior_tree
+npm install behavior_tree_service
 ```
 
-```javascript,@ignore
-const bt = require('behavior_tree');
+```javascript
+const bt = require('behavior_tree_service');
 
 let tree = bt.BehaviorTree.fromText(`-->
 |   (condition)
@@ -249,9 +249,9 @@ console.log(tree);
 ### NPM service
 
 ```bash
-npm install behavior_tree -g
+npm install behavior_tree_service -g
 
-behavior_tree --help
+behavior_tree_service --help
 ```
 
 ### In your web page
