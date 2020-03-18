@@ -236,7 +236,7 @@ Both the `BehaviorTree` library and the service are available via NPM.
 npm install behavior_tree_service
 ```
 
-```javascript
+```javascript@Ignore
 const bt = require('behavior_tree_service');
 
 let tree = bt.BehaviorTree.fromText(`-->
