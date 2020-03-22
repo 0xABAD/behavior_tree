@@ -414,6 +414,20 @@ class BehaviorTree {
     }
 
     /**
+     * Updates tree with new condition value.
+     * @param {string} name condition name
+     * @returns {number} status of the condition, or `-1` if condition was not found
+     */
+    getConditionStatus(name) {
+        if (this.conditions.has(name)) {
+            return this.conditions.get(name).map((/** @type {Condition} */ c) => c.status()).find(_ => true);
+        }
+        else {
+            return -1;
+        }
+    }
+
+    /**
      * Updates tree with new action status.
      * @param {string} name action name
      * @param {number} status new status
@@ -421,6 +435,20 @@ class BehaviorTree {
     setActionStatus(name, status) {
         if (this.actions.has(name)) {
             this.actions.get(name).forEach((/** @type {Action} */ a) => a.setStatus(status));
+        }
+    }
+
+    /**
+     * Updates tree with new action status.
+     * @param {string} name action name
+     * @returns {number} status of the action, or `-1` if action was not found
+     */
+    getActionStatus(name) {
+        if (this.actions.has(name)) {
+            return this.actions.get(name).map((/** @type {Action} */ c) => c.status()).find(_ => true);
+        }
+        else {
+            return -1;
         }
     }
 
@@ -703,7 +731,7 @@ function getFriendlyStatus(status) {
 
 if (typeof exports !== 'undefined' && exports) {
     exports.bt = {
-        BehaviorTree,
+        BehaviorTree, Node,
         parse, SUCCESS, FAILED, RUNNING,
         fallback, sequence, parallel, condition, action,
         FALLBACK, SEQUENCE, PARALLEL, CONDITION, ACTION,
