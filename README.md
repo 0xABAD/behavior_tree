@@ -263,4 +263,16 @@ You can import the java script in your web page by importing it this way:
 <script defer src="https://unpkg.com/behavior_tree_service@1.0.0/btreeviz.js"></script>
 ```
 
-The example usage can be seen in the `index.html` in this repository.
+```javascript
+const host = document.getElementById("tree-host);
+const tree = BehaviorTree.fromText(`->
+    |   [Action1]
+    |   (Condition1)`);
+
+treeRefresh = showTree(tree, host,  nodeDoubleClicked);
+
+// update a tree node
+tree.setConditionStatus('Condition1', FALURE);
+// re-paint the view
+treeRefresh();
+```
