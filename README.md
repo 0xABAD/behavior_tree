@@ -263,16 +263,25 @@ You can import the java script in your web page by importing it this way:
 <script defer src="https://unpkg.com/behavior_tree_service@1.0.0/btreeviz.js"></script>
 ```
 
-```javascript
-const host = document.getElementById("tree-host);
+```javascript@ignore
+const host = document.getElementById("tree-host");
 const tree = BehaviorTree.fromText(`->
     |   [Action1]
     |   (Condition1)`);
 
-treeRefresh = showTree(tree, host,  nodeDoubleClicked);
+function nodeDoubleClicked(node, shiftKey) {
+    console.log(`Node ${node.name} double-clicked withe the shift key ${shiftKey ? "down" : "up"}`);
+}
+
+function nodeRightClicked(node) {
+    console.log(`Node ${node.name} right-clicked`);
+}
+
+
+const treeRefresh = showTree(tree, host,  nodeDoubleClicked);
 
 // update a tree node
-tree.setConditionStatus('Condition1', FALURE);
+tree.setConditionStatus('Condition1', FAILURE);
 // re-paint the view
 treeRefresh();
 ```
