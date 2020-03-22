@@ -1,7 +1,8 @@
 
 if (typeof (require) === typeof (Function)) {
     // only load the dependency during development time to get dev support
-    d3 = require("d3@^5.8")
+    d3 = require("d3@^5.15")
+    bt = require('./btree').bt
 }
 
 /**
@@ -13,8 +14,10 @@ if (typeof (require) === typeof (Function)) {
  * @param {number} width 
  * @param {number} x0 
  * @param {number} x1 
+ * @param {(node: Node, shiftKey: boolean): void} onDoubleClick double-click callback
+ * @param {(node: Node): void} onRightClick right callback
  */
-function renderTree(parent, root, width, x0, x1) {
+function renderTree(parent, root, width, x0, x1, onDoubleClick=undefined, onRightClick=undefined) {
     function translate(tree) {
         let x = tree.dy + tree.drag_dx,
             y = tree.dx - x0 + tree.drag_dy;
@@ -42,19 +45,21 @@ function renderTree(parent, root, width, x0, x1) {
     
     const link = g.append('g')
           .attr('fill', 'none')
-          .attr('stroke', '#555')
-          .attr('stroke-opacity', 0.4)
+          .attr('stroke-opacity', 0.6)
           .attr('stroke-width', 1.5)
           .selectAll('path')
           .data(root.links())
           .join('path')
           .attr('d', d3.linkHorizontal()
                 .x(d => d.y)
-                .y(d => d.x));
+                .y(d => d.x))
+            .attr('stroke', e => {
+            return nodeColor(e.target.data.active(), e.target.data.status());
+        });
     
     const node = g.append('g')
           .attr('stroke-linejoin', 'round')
-          .attr('stroke-width', 3)
+          .attr('stroke-width', 2)
           .selectAll('g')
           .data(root.descendants())
           .join('g')
@@ -63,9 +68,7 @@ function renderTree(parent, root, width, x0, x1) {
     function nodeColor(active, status) {
         let base       = 'BF',
             amp        = '11',
-            color      = '#${base}${amp}${amp}',
-            fill       = 'white',
-            text_color = 'black';
+            color      = '#${base}${amp}${amp}';
 
         if (active) {
             amp = '50';
@@ -148,6 +151,19 @@ function renderTree(parent, root, width, x0, x1) {
                 .attr('dy', '0.31em')
                 .attr('text-anchor', 'start')
                 .attr('fill', text_color)
+                // add double-click handler
+                .on('dblclick', n => {
+                    if (onDoubleClick) {
+                        onDoubleClick(n.data, d3.event.shiftKey);
+                    }
+                })
+                // add right-click handler
+                .on('contextmenu', n => {
+                    if (onRightClick) {
+                        d3.event.preventDefault();
+                        onRightClick(n.data);
+                    }
+                })
                 .text(name)
                 .clone(true).lower()
                 .node();
@@ -210,9 +226,11 @@ function showError(message, parent) {
  * Parses and shows the supplied tree.
  * @param {string} str behavior tree as string
  * @param {string} parent name of hosting HTML element
+ * @param {(node: Node, shiftKey: boolean): void} onDoubleClick double-click callback
+ * @param {(node: Node): void} onRightClick right callback
  * @returns {void}
  */
-function loadTree(str, parent) {
+function loadTree(str, parent, onDoubleClick=undefined, onRightClick=undefined) {
     let tree = parse(str),
         line = tree.line;
     if (tree.error) {
@@ -220,23 +238,27 @@ function loadTree(str, parent) {
         return;
     }
 
-    showTree(tree, parent);
+    showTree(tree, parent, onDoubleClick, onRightClick);
 }
 
 /**
  * Populates the page with the behavior _tree_ and condition and action control elements.
  * @param {BehaviorTree} tree behavior tree
  * @param {string} parent name of hosting HTML element
- * @returns {void}
+ * @param {(node: Node, shiftKey: boolean): void} onDoubleClick double-click callback
+ * @param {(node: Node): void} onRightClick right callback
+ * @returns {() => void} render function for programmatic view refresh
  */
-function showTree(tree, parent) {
-    let x0   = Infinity,
-        x1   = -x0,
+function showTree(tree, parent, onDoubleClick=undefined, onRightClick=undefined) {
+    let x0 = Infinity,
+        x1 = -x0,
         data = d3.hierarchy(tree.root),
-        root = undefined,
         horizontal_stretch = 0,
         vertical_stretch   = 8,
         [width, height]    = windowSize();
+
+    /** @type {d3.TreeLayout<bt.Node>} */
+    root = undefined
 
     data.drag_dx = 0;
     data.drag_dy = 0;
@@ -386,9 +408,11 @@ function showTree(tree, parent) {
     function render() {
         root.data.deactivate();
         root.data.tick();
-        renderTree(parent, root, width, x0, x1);
+        renderTree(parent, root, width, x0, x1, onDoubleClick, onRightClick);
     }
     render();
+
+    return render;
 }
 
 function main(parentElement) {
@@ -401,7 +425,7 @@ function main(parentElement) {
         }
         let reader = new FileReader();
         reader.onload = function(e) {
-            loadTree(e.target.result, parentElement);
+            loadTree(e.target.result, parentElement, undefined);
         };
         reader.readAsText(this.files[0]);
     }, false);
@@ -424,5 +448,5 @@ function main(parentElement) {
             card.style('visibility', viz);
         });
 
-    loadTree(SAMPLE_TREE, parentElement);
+    loadTree(SAMPLE_TREE, parentElement, undefined, undefined);
 }
