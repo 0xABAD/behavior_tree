@@ -104,6 +104,39 @@ function parseParallel(buf, i) {
     return [num, i, null];
 }
 
+/**
+ * Parses _comment_ from current position in the buffer
+ * @param {string} buf behavior tree model
+ * @param {number} i current index
+ * @returns {[number, string, string | null]} tuple with adjusted current parsing index, comment text and error message or null
+ */
+function parseComment(buf, i) {
+    if (i === buf.length) {
+        return [i, undefined, expect(';', 'EOF')];
+    }
+    let commentBuf = '';
+    const initIndex = i;
+
+    while (i < buf.length) {
+        let ch = buf[i];
+        if (initIndex === i) {
+            if (ch !== ';') {
+                return [i, undefined, expect(';;', ch)];
+            }
+            // skip the semicolon
+        } else {
+            if (ch.match(/(\n|\r)/)) {
+                // we reached end-of-line
+                break;
+            }
+            commentBuf += ch;
+        }
+        i++;
+    }
+
+    return [i, commentBuf.trim(), null];
+}
+
 class Node {
     /**
      * Creates node.
@@ -660,6 +693,14 @@ function parse(buf) {
             }
         } break;
 
+        case ';': {
+            let [n, comment, err] = parseComment(buf, i);
+            if (err) {
+                return onError(err);
+            }
+            i = n;
+        } break;
+
         default:
             let err = `Expecting '|', '-', '!', '[', or '(' but have '${ch}'`;
             return onError(err);
@@ -735,6 +776,7 @@ if (typeof exports !== 'undefined' && exports) {
         parse, SUCCESS, FAILED, RUNNING,
         fallback, sequence, parallel, condition, action,
         FALLBACK, SEQUENCE, PARALLEL, CONDITION, ACTION,
-        SAMPLE_TREE, getFriendlyStatus
+        SAMPLE_TREE, getFriendlyStatus,
+        parseComment
     };
 }

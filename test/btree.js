@@ -1,13 +1,16 @@
 //@ts-check
 
-let expect = require('chai').expect;
-let fs = require('fs');
+const expect = require('chai').expect;
+const fs = require('fs');
+// the `bt` is used by the README.md samples that are tested below
+const bt = require('../btree').bt;
 const { BehaviorTree, parse,
     Fallback, Sequence, Parallel, Action, Condition,
     FALLBACK, SEQUENCE, PARALLEL, ACTION, CONDITION,
     fallback, sequence, parallel, action, condition,
     SUCCESS, FAILED, RUNNING, FINISHED,
-    SAMPLE_TREE, getFriendlyStatus } = require('../btree').bt;
+    SAMPLE_TREE, getFriendlyStatus,
+    parseComment } = bt;
 
 describe('README.md samples', () => {
     it('runs all samples from README.md', () => {
@@ -32,7 +35,14 @@ describe('README.md samples', () => {
             // console.log(`${language}: ${fencedText}`);
             checkSample(language, fencedText);
         }
+    });
 
+    it('parses the `sample.tree` file', () => {
+        let sample = fs.readFileSync('./sample.tree', { encoding: 'utf8' });
+        let tree = parse(sample);
+        expect(tree.error).to.be.null;
+        expect(tree.root).to.be.not.null;
+        expect(tree.root.kind).to.be.equal(FALLBACK);
     });
 })
 
@@ -49,6 +59,13 @@ function checkSample(language, sampleCode) {
             expect(tree.error, `there should be no error in tree sample ${sampleCode}`).to.be.null;
             break;
         case 'javascript':
+            const { JSDOM } = require("jsdom");
+            // mock the document
+            var document = new JSDOM(`<div id="tree-host"/>`).window.document;
+            // mock the function, so the sample can run
+            var showTree = function (arg1, arg2, arg3, arg4) {
+                return () => { };
+            }; 
             const runSample = () => {
                 eval(sampleCode);
             }
@@ -68,6 +85,39 @@ describe('#parse', () => {
             expect(tree.error).to.be.null;
             expect(tree.conditions.get('Ghost Scared')).to.have.length(2);
             expect(tree.actions.get('Avoid Ghost')).to.have.length(1);
+        });
+    });
+
+    context('comments', () => {
+        it('ignores full line comment', () => {
+            let tree = parse(`;; this is a comment
+            ->`);
+            expect(tree.error).to.be.null;
+            expect(tree.root).to.be.not.null;
+            expect(tree.root.kind).to.be.equal(SEQUENCE);
+        });
+
+        it('parses comment', () => {
+            const expectedComment = 'this is a comment';
+            const [i, comment, err] = parseComment(`;; ${expectedComment}
+            ->`, 1);
+            expect(err).to.be.null;
+            expect(comment).to.be.not.null;
+            expect(comment).to.be.equal(expectedComment);
+        });
+
+        it('ignores trailing comments', () => {
+            let tree = parse(`-> ;; this is a comment`);
+            expect(tree.error).to.be.null;
+            expect(tree.root).to.be.not.null;
+            expect(tree.root.kind).to.be.equal(SEQUENCE);
+        });
+
+        it('enforces double semicolon', () => {
+            let tree = parse(`; this is a wrong comment`);
+            expect(tree.error).to.be.not.null;
+            expect(tree.line).to.be.equal(1);
+            expect(tree.error).to.contain(';;'); // should indicate how to write comments
         });
     });
 

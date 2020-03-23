@@ -7,7 +7,7 @@
         "Behavior",
         "Automation"
     ],
-    "version": "1.1.0",
+    "version": "1.2.0",
     "main": "index.js",
     "bin": "serve.js",
     "repository": "https://github.com/jan-dolejsi/behavior_tree",
@@ -21,12 +21,13 @@
         "body-parser": "^1.19.0",
         "cors": "^2.8.5",
         "express": "^4.17.1",
-        "yargs": "^15.1.0"
+        "yargs": "^15.3.1"
     },
     "devDependencies": {
         "chai": "^4.2.0",
         "d3": "^5.15.0",
-        "mocha": "^7.1.0",
+        "mocha": "^7.1.1",
+        "jsdom": "^16.2.1",
         "typescript": "^3.8.3"
     }
 }

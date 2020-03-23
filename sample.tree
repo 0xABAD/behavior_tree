@@ -1,0 +1,16 @@
+;; This is a Pac-Man behavior model
+?
+|    ->
+|    |    (Ghost Close)
+|    |    ?
+|    |    |    ->
+|    |    |    |    !(Ghost Scared)
+|    |    |    |    (Power Pill Close)
+|    |    |    |    [Eat Power Pill]
+|    |    |    ->
+|    |    |    |    (Ghost Scared)
+|    |    |    |    [Chase Ghost]
+|    |    |    [Avoid Ghost]
+|    =1
+|    |    [Eat Pills]
+|    |    [Eat Fruit]

@@ -140,6 +140,17 @@ to `N`.  If number of children in a _failed_ state is greater than the
 number of children in a _success_ state minus `N` then the parallel
 node will be _failed_; otherwise, it will be considered _running_.
 
+### Comments
+
+The syntax also allows for comments in the tree model. Comment is 
+text that follows `;;`.
+
+```tree
+;; Header comment
+->
+|   (condition x) ;; trailing comment...
+```
+
 ## Using BehaviorTree in your code
 
 ### Parsing behavior tree and executing it
@@ -238,7 +249,9 @@ npm install behavior_tree_service
 
 ```javascript@Ignore
 const bt = require('behavior_tree_service');
+```
 
+```javascript
 let tree = bt.BehaviorTree.fromText(`-->
 |   (condition)
 `);
@@ -263,7 +276,7 @@ You can import the java script in your web page by importing it this way:
 <script defer src="https://unpkg.com/behavior_tree_service@1.0.0/btreeviz.js"></script>
 ```
 
-```javascript@ignore
+```javascript
 const host = document.getElementById("tree-host");
 const tree = BehaviorTree.fromText(`->
     |   [Action1]
@@ -278,10 +291,10 @@ function nodeRightClicked(node) {
 }
 
 
-const treeRefresh = showTree(tree, host,  nodeDoubleClicked);
+const treeRefresh = showTree(tree, host,  nodeDoubleClicked, nodeRightClicked);
 
 // update a tree node
-tree.setConditionStatus('Condition1', FAILURE);
+tree.setConditionStatus('Condition1', FAILED);
 // re-paint the view
 treeRefresh();
 ```
