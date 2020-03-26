@@ -27,8 +27,8 @@ function renderTree(parent, root, width, x0, x1, onDoubleClick=undefined, onRigh
     const svg = d3.select(parent)
           .html('')
           .append('svg')
-          .attr('width', '100%')
-          .attr('height', '100%')
+          .attr('width', '100vw')
+          .attr('height', '100vh')
           .attr('viewBox', [0, 0, width, x1 - x0 + root.dx * 4]);
     
     const g = svg.append('g')

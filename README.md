@@ -142,7 +142,7 @@ node will be _failed_; otherwise, it will be considered _running_.
 
 ### Comments
 
-The syntax also allows for comments in the tree model. Comment is 
+The syntax also allows for comments in the tree model. Comment is
 text that follows `;;`.
 
 ```tree
