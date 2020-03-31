@@ -137,6 +137,7 @@ function parseComment(buf, i) {
     return [i, commentBuf.trim(), null];
 }
 
+/** Behavior tree node */
 class Node {
     /**
      * Creates node.
