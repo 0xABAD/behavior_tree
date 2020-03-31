@@ -15,7 +15,7 @@
     "author": "Dan Abad, Jan Dolejsi",
     "scripts": {
         "test": "mocha",
-        "check": "tsc btree.js --allowJS --checkJS --lib ES2015 --declaration --emitDeclarationOnly",
+        "check": "tsc btree.js --allowJS --checkJS --lib ES2015 --declaration --declarationMap --emitDeclarationOnly",
         "prepack": "npm run check"
     },
     "dependencies": {
