@@ -152,6 +152,8 @@ class Node {
         this.kind = kind;
         /** @property {Node[] | undefined} children children nodes. */
         this.children = children || null;
+        /** @property {number | undefined} line line number if parsed from a file.*/
+        this.line = undefined;
         this._active = false;
         this.wasActive = false; // this does not seem to be used
         this.nodeStatus = FAILED;
@@ -194,6 +196,16 @@ class Node {
                 this.children[i].deactivate();
             }
         }
+    }
+
+    /**
+     * Sets line number.
+     * @param {number} line line number, if parsed from a file
+     * @returns {Node} this node
+     */
+    setLine(line) {
+        this.line = line;
+        return this;
     }
 }
 
@@ -529,6 +541,8 @@ class BehaviorTree {
             default:
                 throw new Error(`Unexpected node kind: ${nodeAsJson.kind}.`);
         }
+        
+        node.setLine(nodeAsJson.line);
 
         if (nodeAsJson.children) {
             node.children = nodeAsJson.children.map(child => this.nodeFromJson(child));
@@ -639,7 +653,7 @@ function parse(buf) {
                 return onError(err);
             }
             i = n;
-            let p = parallel(num);
+            let p = parallel(num).setLine(line);
             let e = pushNode(p);
             if (e) {
                 return onError(e);
@@ -647,7 +661,7 @@ function parse(buf) {
         } break;
 
         case '?': {
-            let err = pushNode(fallback());
+            let err = pushNode(fallback().setLine(line));
             if (err) {
                 return onError(err);
             }
@@ -659,7 +673,7 @@ function parse(buf) {
                 return onError(err);
             }
             i = n;
-            let e = pushNode(sequence());
+            let e = pushNode(sequence().setLine(line));
             if (e) {
                 return onError(e);
             }
@@ -671,7 +685,7 @@ function parse(buf) {
                 return onError(err);
             }
             i = n;
-            let c = condition(name, notPending);
+            let c = condition(name, notPending).setLine(line);
             if (notPending) {
                 notPending = false;
             }
@@ -687,7 +701,7 @@ function parse(buf) {
                 return onError(err);
             }
             i = n;
-            let a = action(name);
+            let a = action(name).setLine(line);
             let e = pushNode(a);
             if (e) {
                 return onError(e);

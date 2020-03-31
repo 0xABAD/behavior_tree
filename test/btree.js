@@ -126,12 +126,14 @@ describe('#parse', () => {
             let tree = parse(`?`);
             expect(tree.root).to.be.not.null;
             expect(tree.root.kind).to.be.equal(FALLBACK);
+            expect(tree.root.line).to.be.equal(1, 'line number');
         });
 
         it('parses sequence', () => {
             let tree = parse(`->`);
             expect(tree.root).to.be.not.null;
             expect(tree.root.kind).to.be.equal(SEQUENCE);
+            expect(tree.root.line).to.be.equal(1, 'line number');
         });
 
         it('parses parallel', () => {
@@ -139,6 +141,7 @@ describe('#parse', () => {
             let tree = parse(`=${count}`);
             expect(tree.root).to.be.not.null;
             expect(tree.root.kind).to.be.equal(PARALLEL);
+            expect(tree.root.line).to.be.equal(1, 'line number');
             /** @type {Parallel} */
             let actualParallel = tree.root;
             expect(actualParallel.successCount).to.be.equal(count);
@@ -151,6 +154,7 @@ describe('#parse', () => {
             expect(tree.root.kind).to.be.equal(CONDITION);
             expect(tree.root.name).to.be.equal(conditionName);
             expect(tree.root.hasNot).to.be.equal(false);
+            expect(tree.root.line).to.be.equal(1, 'line number');
             expect(tree.conditions.get(conditionName)).to.be.deep.equal([tree.root]);
         });
 
@@ -161,6 +165,7 @@ describe('#parse', () => {
             expect(tree.root.kind).to.be.equal(CONDITION);
             expect(tree.root.name).to.be.equal(conditionName);
             expect(tree.root.hasNot).to.be.equal(true);
+            expect(tree.root.line).to.be.equal(1, 'line number');
             expect(tree.conditions.get(conditionName)).to.be.deep.equal([tree.root]);
         });
 
@@ -171,6 +176,7 @@ describe('#parse', () => {
             expect(tree.root.kind).to.be.equal(CONDITION);
             expect(tree.root.name).to.be.equal(conditionName);
             expect(tree.root.hasNot).to.be.equal(false);
+            expect(tree.root.line).to.be.equal(1, 'line number');
             expect(tree.conditions.get(conditionName)).to.be.deep.equal([tree.root]);
         });
 
@@ -180,6 +186,7 @@ describe('#parse', () => {
             expect(tree.root).to.be.not.null;
             expect(tree.root.kind).to.be.equal(ACTION);
             expect(tree.root.name).to.be.equal(actionName);
+            expect(tree.root.line).to.be.equal(1, 'line number');
             expect(tree.actions.get(actionName)).to.be.deep.equal([tree.root]);
         });
     });
