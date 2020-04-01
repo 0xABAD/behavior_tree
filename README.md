@@ -38,6 +38,8 @@ _failed_, and these states are denoted by the colors _green_, _blue_,
 and _red_, respectively.  Note that condition nodes may be in a
 _successful_ or _failed_ state, never _running_.
 
+![Sample](sample.png)
+
 ## Syntax
 
 The demo allows the loading of any arbitrary tree and the syntax is
@@ -163,7 +165,7 @@ const { BehaviorTree,
     FALLBACK, SEQUENCE, PARALLEL, ACTION, CONDITION,
     fallback, sequence, parallel, action, condition,
     SUCCESS, FAILED, RUNNING, FINISHED,
-    SAMPLE_TREE, getFriendlyStatus } = require('../btree').bt;
+    SAMPLE_TREE, getFriendlyStatus } = require('../btree');
 ```
 
 ```javascript
@@ -248,11 +250,11 @@ npm install behavior_tree_service
 ```
 
 ```javascript@Ignore
-const bt = require('behavior_tree_service');
+const { BehaviorTree } = require('behavior_tree_service');
 ```
 
 ```javascript
-let tree = bt.BehaviorTree.fromText(`-->
+let tree = BehaviorTree.fromText(`-->
 |   (condition)
 `);
 
@@ -272,8 +274,8 @@ behavior_tree_service --help
 You can import the java script in your web page by importing it this way:
 
 ```html
-<script defer src="https://unpkg.com/behavior_tree_service@1.0.0/btree.js"></script>
-<script defer src="https://unpkg.com/behavior_tree_service@1.0.0/btreeviz.js"></script>
+<script defer src="https://unpkg.com/behavior_tree_service@latest/btree.js"></script>
+<script defer src="https://unpkg.com/behavior_tree_service@latest/btreeviz.js"></script>
 ```
 
 ```javascript

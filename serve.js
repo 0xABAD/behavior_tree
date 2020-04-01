@@ -7,7 +7,7 @@ let cors = require('cors');
 let fs = require('fs');
 const yargs = require('yargs');
 const http = require('http');
-const { BehaviorTree, Action, SUCCESS, FAILED } = require('./btree').bt;
+const { BehaviorTree, Action, SUCCESS, FAILED } = require('./btree');
 
 const argv = yargs
     .option('config', {

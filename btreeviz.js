@@ -2,7 +2,7 @@
 if (typeof (require) === typeof (Function)) {
     // only load the dependency during development time to get dev support
     d3 = require("d3@^5.15")
-    bt = require('./btree').bt
+    bt = require('./btree')
 }
 
 /**
@@ -43,13 +43,15 @@ function renderTree(parent, root, width, x0, x1, onDoubleClick=undefined, onRigh
         g.attr('transform', translate(root));
     }));
     
+    const lineOpacity = 0.8;
+
     const link = g.append('g')
           .attr('fill', 'none')
-          .attr('stroke-opacity', 0.6)
-          .attr('stroke-width', 1.5)
+          .attr('stroke-opacity', lineOpacity)
           .selectAll('path')
           .data(root.links())
           .join('path')
+          .attr('stroke-width', e => e.target.data.active() ? 2 : 1)
           .attr('d', d3.linkHorizontal()
                 .x(d => d.y)
                 .y(d => d.x))
@@ -59,42 +61,40 @@ function renderTree(parent, root, width, x0, x1, onDoubleClick=undefined, onRigh
     
     const node = g.append('g')
           .attr('stroke-linejoin', 'round')
-          .attr('stroke-width', 2)
+          .attr('stroke-opacity', lineOpacity)
+          .attr('stroke-width', 1.5)
           .selectAll('g')
           .data(root.descendants())
           .join('g')
           .attr('transform', d => `translate(${d.y},${d.x})`);
 
     function nodeColor(active, status) {
-        let base       = 'BF',
-            amp        = '11',
-            color      = '#${base}${amp}${amp}';
+        const base = 'CC';
+        const amp1 = '66';
+        const amp2 = '22';
 
-        if (active) {
-            amp = '50';
-        }
         switch (status) {
-        case FAILED:  color = `#${base}${amp}${amp}`; break;
-        case SUCCESS: color = `#${amp}${base}${amp}`; break;
-        case RUNNING: color = `#${amp}${amp}${base}`; break;
+            case SUCCESS:
+                return `#${amp1}${base}${amp2}`; 
+            case RUNNING:
+                return `#${amp2}${amp1}${base}`; 
+            case FAILED:  
+                return `#${base}${amp1}${amp2}`; 
+            default:
+                return `#${base}${base}${base}`; 
         }
-        return color;
     }
 
     node.each(function(d) {
-        let active = d.data.active(),
-            k      = d.data.kind;
+        /** @type {boolean} */
+        const active = d.data.active();
+        /** @type {string} */
+        const k      = d.data.kind;
 
-        if (k == SEQUENCE || k == FALLBACK || k == PARALLEL) {
-            let color      = nodeColor(active, d.data.status()),
-                fill       = 'white',
-                text_color = 'black';
-
-            if (active) {
-                fill = color;
-                color = '#444';
-                text_color = 'white';
-            }
+        if (k === SEQUENCE || k === FALLBACK || k === PARALLEL) {
+            const color = nodeColor(active, d.data.status());
+            const fill = active ? color : 'white';
+            const text_color = active ? 'white' : 'black';
 
             const SZ = 24;
 
@@ -118,16 +118,10 @@ function renderTree(parent, root, width, x0, x1, onDoubleClick=undefined, onRigh
         }
 
         if (k == CONDITION || k == ACTION) {
-            let container,
-                color      = nodeColor(active, d.data.status()),
-                fill       = 'white',
-                text_color = 'black';
-
-            if (active) {
-                fill = color;
-                color = '#111';
-                text_color = 'white';
-            }
+            let container;
+            const color = nodeColor(active, d.data.status());
+            const fill = active ? color : 'white';
+            const text_color = active ? 'white' : 'black';
 
             if (k == CONDITION) {
                 container = d3.select(this).append('ellipse');
@@ -168,7 +162,7 @@ function renderTree(parent, root, width, x0, x1, onDoubleClick=undefined, onRigh
                 .clone(true).lower()
                 .node();
 
-            let width = text.getComputedTextLength() + PAD;
+            const width = text.getComputedTextLength() + PAD;
             if (k == CONDITION) {
                 container
                     .attr('cx', width/2.0 - PAD/2.0)
@@ -185,7 +179,7 @@ function renderTree(parent, root, width, x0, x1, onDoubleClick=undefined, onRigh
         }
 
         // node tooltip
-        var status = getFriendlyStatus(d.data.status());
+        const status = getFriendlyStatus(d.data.status());
         d3.select(this)
             .append("svg:title")
             .text(d => `Node: ${d.data.hasNot?"NOT ": ""}${d.data.name} ${k}\nActive: ${active}\nStatus: ${status}`);

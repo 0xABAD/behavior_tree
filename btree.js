@@ -785,13 +785,14 @@ function getFriendlyStatus(status) {
     }
 }
 
-if (typeof exports !== 'undefined' && exports) {
-    exports.bt = {
+if (typeof module !== 'undefined' && module) {
+    module.exports = {
         BehaviorTree, Node,
-        parse, SUCCESS, FAILED, RUNNING,
-        fallback, sequence, parallel, condition, action,
-        FALLBACK, SEQUENCE, PARALLEL, CONDITION, ACTION,
-        SAMPLE_TREE, getFriendlyStatus,
-        parseComment
+        parse, parseComment,
+        SUCCESS, FAILED, RUNNING, getFriendlyStatus, // node status
+        Fallback, Sequence, Parallel, Condition, Action, // node classes
+        fallback, sequence, parallel, condition, action, // shorthand for node creation
+        FALLBACK, SEQUENCE, PARALLEL, CONDITION, ACTION, // node kind constants
+        SAMPLE_TREE, // auxiliaries        
     };
 }

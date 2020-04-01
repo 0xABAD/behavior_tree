@@ -3,7 +3,7 @@
 const expect = require('chai').expect;
 const fs = require('fs');
 // the `bt` is used by the README.md samples that are tested below
-const bt = require('../btree').bt;
+const bt = require('../btree');
 const { BehaviorTree, parse,
     Fallback, Sequence, Parallel, Action, Condition,
     FALLBACK, SEQUENCE, PARALLEL, ACTION, CONDITION,
