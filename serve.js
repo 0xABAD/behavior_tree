@@ -118,7 +118,7 @@ app.post('/start', (req, res, next) => {
                     res.status(500).end();
                 }
                 else {
-                    activate(owner, fullActionName, tree);
+                    initializeTree(owner, fullActionName, tree);
                     res.status(202).end();
                 }
             }
@@ -137,7 +137,7 @@ app.post('/start', (req, res, next) => {
  * @param {string} fullActionName 
  * @param {BehaviorTree} tree 
  */
-function activate(owner, fullActionName, tree) {
+function initializeTree(owner, fullActionName, tree) {
     tree.onActionActivation((/** @type {Action} */ action) => startAction(tree, action));
     tree.setId(treeCounter++);
     // update the initial state of the tree to reflect the current state
@@ -199,13 +199,18 @@ function createFullActionName(action) {
  * @returns {void}
  */
 function updateTree(tree, conditionValues) {
+    let treeUpdated = false;
     Object.keys(conditionValues).forEach(conditionName => {
         if (tree.conditions.has(conditionName)) {
             let value = conditionValues[conditionName];
             let status = conditionValueToStatus(value);
             tree.setConditionStatus(conditionName, status);
+            treeUpdated = true;
         }
     });
+    if (treeUpdated) {
+        tree.tick();
+    }
 }
 
 /**
