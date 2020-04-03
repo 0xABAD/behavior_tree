@@ -164,7 +164,7 @@ const { BehaviorTree,
     Fallback, Sequence, Parallel, Action, Condition,
     FALLBACK, SEQUENCE, PARALLEL, ACTION, CONDITION,
     fallback, sequence, parallel, action, condition,
-    SUCCESS, FAILED, RUNNING, FINISHED,
+    SUCCESS, FAILED, RUNNING,
     SAMPLE_TREE, getFriendlyStatus } = require('../btree');
 ```
 

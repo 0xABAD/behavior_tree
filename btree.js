@@ -155,8 +155,10 @@ class Node {
         /** @property {number | undefined} line line number if parsed from a file.*/
         this.line = undefined;
         this._active = false;
-        this.wasActive = false; // this does not seem to be used
+        /** @property {boolean} was previously active and now it no longer is */
+        this.wasActive = false;
         this.nodeStatus = FAILED;
+        /** @property {boolean} node is decorated with the 'not' decorator */
         this.hasNot = false;
     }
     status() {
@@ -287,6 +289,7 @@ class Parallel extends Node {
      */
     constructor(successCount, children = []) {
         super('\u21C9', PARALLEL, children || []);
+        /** @property {number} threshold for number of successful children to reach success for this node */
         this.successCount = successCount;
     }
     tick() {
@@ -359,8 +362,11 @@ class Action extends Node {
 
     /** @param {boolean} isActive */
     setActive(isActive) {
+        const isActiveAlready = this._active;
         super.setActive(isActive);
-        this.actionActivationCallback.forEach(c => c(this));
+        if (!isActiveAlready && isActive) {
+            this.actionActivationCallback.forEach(c => c(this));
+        }
     }
 }
 
