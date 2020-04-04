@@ -25,7 +25,7 @@ function expect(what, have) {
 function parseSequence(buf, i) {
     if (i < buf.length) {
         let ch = buf[i];
-        if (ch == '>') {
+        if (ch === '>') {
             i++;
             return [i, null];
         } else {
@@ -47,7 +47,7 @@ function parseCondition(buf, i) {
     while (i < buf.length) {
         let ch = buf[i];
         i++;
-        if (ch == ')') {
+        if (ch === ')') {
             return [i, cond.trim(), null];
         } else {
             cond = cond.concat(ch);
@@ -67,7 +67,7 @@ function parseAction(buf, i) {
     while (i < buf.length) {
         let ch = buf[i];
         i++;
-        if (ch == ']') {
+        if (ch === ']') {
             return [i, action.trim(), null];
         } else {
             action = action.concat(ch);
@@ -87,7 +87,7 @@ function parseParallel(buf, i) {
     while (i < buf.length) {
         let ch = buf[i];
         let m = ch.match(/\d/);
-        if (m && m.length == 1) {
+        if (m && m.length === 1) {
             numBuf += ch;
         } else {
             break;
@@ -108,7 +108,7 @@ function parseParallel(buf, i) {
  * Parses _comment_ from current position in the buffer
  * @param {string} buf behavior tree model
  * @param {number} i current index
- * @returns {[number, string, string | null]} tuple with adjusted current parsing index, comment text and error message or null
+ * @returns {[number, string | undefined, string | null]} tuple with adjusted current parsing index, comment text and error message or null
  */
 function parseComment(buf, i) {
     if (i === buf.length) {
@@ -232,7 +232,7 @@ class Fallback extends Node {
         for (let i = 0; i < this.children.length; i++) {
             let s = this.children[i].tick();
             this.setStatus(s);
-            if (s == RUNNING || s == SUCCESS) {
+            if (s === RUNNING || s === SUCCESS) {
                 return this.status();
             }
         }
@@ -262,7 +262,7 @@ class Sequence extends Node {
         for (let i = 0; i < this.children.length; i++) {
             let s = this.children[i].tick();
             this.setStatus(s);
-            if (s == RUNNING || s == FAILED) {
+            if (s === RUNNING || s === FAILED) {
                 return this.status();
             }
         }
@@ -301,10 +301,10 @@ class Parallel extends Node {
 
         for (let i = 0; i < this.children.length; i++) {
             let s = this.children[i].tick();
-            if (s == SUCCESS) {
+            if (s === SUCCESS) {
                 succeeded++;
             }
-            if (s == FAILED) {
+            if (s === FAILED) {
                 failed++;
             }
         }
@@ -339,7 +339,7 @@ class Action extends Node {
     /**
      * Creates Action node.
      * @param {string} name action name
-     * @param {ActionActivationCallback} onActivation on action
+     * @param {ActionActivationCallback | undefined} onActivation on action
      * @param {number} status initial action status
      */
     constructor(name, onActivation = undefined, status = RUNNING) {
@@ -398,7 +398,7 @@ class BehaviorTree {
 
     /**
      * Behavior Tree
-     * @param {Node} root tree root node
+     * @param {Node|null} root tree root node
      * @param {number|null} line line at which the error ocurred
      * @param {string|null} error parsing error
      */
@@ -422,7 +422,7 @@ class BehaviorTree {
         /** @property {ActionActivationCallback} onAnyActionActivation callbacks for action activations in this tree. */
         this.onAnyActionActivation = function (/** @type {Action} */ actionNode) {
             thisTree.actionActivationCallbacks.forEach(callback => callback(actionNode));
-        }
+        };
         // subscribe to all action nodes in this tree activations
         this.actions.forEach(actions => actions.forEach(a => a.onActivation(this.onAnyActionActivation)));
         this._id = 0;
@@ -583,7 +583,7 @@ function parse(buf) {
         notPending = false, // is 'not' decorator waiting to be applied?
         i          = 0;
 
-    /** @type {Node[]} nodes in the current tree branch */
+    /** @type {(Node|null)[]} nodes in the current tree branch */
     let nodes = [null];
 
     /**

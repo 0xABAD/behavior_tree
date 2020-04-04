@@ -1,8 +1,8 @@
 
 if (typeof (require) === typeof (Function)) {
     // only load the dependency during development time to get dev support
-    d3 = require("d3@^5.15")
-    bt = require('./btree')
+    d3 = require("d3");
+    bt = require("./btree");
 }
 
 /**
@@ -14,8 +14,8 @@ if (typeof (require) === typeof (Function)) {
  * @param {number} width 
  * @param {number} x0 
  * @param {number} x1 
- * @param {(node: Node, shiftKey: boolean): void} onDoubleClick double-click callback
- * @param {(node: Node): void} onRightClick right callback
+ * @param {((node: Node, shiftKey: boolean) => void) | undefined} onDoubleClick double-click callback
+ * @param {((node: Node) => void) | undefined} onRightClick right callback
  */
 function renderTree(parent, root, width, x0, x1, onDoubleClick=undefined, onRightClick=undefined) {
     function translate(tree) {
@@ -220,8 +220,8 @@ function showError(message, parent) {
  * Parses and shows the supplied tree.
  * @param {string} str behavior tree as string
  * @param {string} parent name of hosting HTML element
- * @param {(node: Node, shiftKey: boolean): void} onDoubleClick double-click callback
- * @param {(node: Node): void} onRightClick right callback
+ * @param {((node: Node, shiftKey: boolean) => void) | undefined} onDoubleClick double-click callback
+ * @param {((node: Node) => void) | undefined} onRightClick right callback
  * @returns {void}
  */
 function loadTree(str, parent, onDoubleClick=undefined, onRightClick=undefined) {
@@ -239,9 +239,9 @@ function loadTree(str, parent, onDoubleClick=undefined, onRightClick=undefined) 
  * Populates the page with the behavior _tree_ and condition and action control elements.
  * @param {BehaviorTree} tree behavior tree
  * @param {string} parent name of hosting HTML element
- * @param {(node: Node, shiftKey: boolean): void} onDoubleClick double-click callback
- * @param {(node: Node): void} onRightClick right callback
- * @returns {() => void} render function for programmatic view refresh
+ * @param {((node: bt.Node, shiftKey: boolean) => void) | undefined} onDoubleClick double-click callback
+ * @param {((node: bt.Node) => void) | undefined} onRightClick right callback
+ * @returns {() => void } render function for programmatic view refresh
  */
 function showTree(tree, parent, onDoubleClick=undefined, onRightClick=undefined) {
     let x0 = Infinity,
@@ -252,7 +252,7 @@ function showTree(tree, parent, onDoubleClick=undefined, onRightClick=undefined)
         [width, height]    = windowSize();
 
     /** @type {d3.TreeLayout<bt.Node>} */
-    root = undefined
+    let root = undefined; //todo: should have let?
 
     data.drag_dx = 0;
     data.drag_dy = 0;
@@ -264,8 +264,8 @@ function showTree(tree, parent, onDoubleClick=undefined, onRightClick=undefined)
 
         root = d3.tree().nodeSize([4*data.dx, data.dy])(data);
         root.each(d => {
-            if (d.x > x1) x1 = d.x;
-            if (d.x < x0) x0 = d.x;
+            if (d.x > x1) { x1 = d.x; }
+            if (d.x < x0) { x0 = d.x; }
         });
     }
     resizeRoot();

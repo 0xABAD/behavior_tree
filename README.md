@@ -40,6 +40,10 @@ _successful_ or _failed_ state, never _running_.
 
 ![Sample](sample.png)
 
+> If you use [Visual Studio Code](http://code.visualstudio.com) you may find
+> the [Behavior Tree extension](https://marketplace.visualstudio.com/items?itemName=jan-dolejsi.btree)
+> handy for authoring trees.
+
 ## Syntax
 
 The demo allows the loading of any arbitrary tree and the syntax is
