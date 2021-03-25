@@ -2,7 +2,6 @@
 //@ts-check
 
 let express = require('express');
-let bodyParser = require('body-parser');
 let cors = require('cors');
 let fs = require('fs');
 const yargs = require('yargs');
@@ -50,17 +49,17 @@ let treeOwners = new Map();
 const state = new Map();
 
 
-app.use(bodyParser.json());
+app.use(express.json());
 
 app.get('/', (req, res, next) => {
     res.json({ "message": "Behavior Tree run-time" });
 });
 
 // return all trees
-app.options('/trees', cors({ origin: "*" }));
-app.get('/trees', cors({ origin: "*" }), (req, res, next) => {
+app.options('/trees', (req, resp, next) => next(), cors({ origin: "*" }));
+app.get('/trees', (req, res, next) => {
     res.json(strMapToObj(trees));
-});
+}, cors({ origin: "*" }));
 
 // returns the tree
 app.get('/tree/:fullActionName', (req, res, next) => {
