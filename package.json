@@ -7,9 +7,10 @@
         "Behavior",
         "Automation"
     ],
-    "version": "2.1.1",
+    "version": "2.1.2",
     "main": "index.js",
     "bin": "serve.js",
+    "types": "index.d.ts",
     "repository": "https://github.com/jan-dolejsi/behavior_tree",
     "license": "MIT",
     "author": "Dan Abad, Jan Dolejsi",
@@ -19,16 +20,16 @@
         "prepack": "npm run check"
     },
     "dependencies": {
-        "body-parser": "^1.19.0",
         "cors": "^2.8.5",
         "express": "^4.17.1",
-        "yargs": "^15.3.1"
+        "yargs": "^16.2.0"
     },
     "devDependencies": {
-        "chai": "^4.2.0",
+        "chai": "^4.3.4",
         "d3": "^5.15.1",
-        "jsdom": "^16.2.2",
-        "mocha": "^7.1.1",
-        "typescript": "^3.8.3"
+        "jsdom": "^16.5.1",
+        "minimist": "^1.2.5",
+        "mocha": "^8.3.2",
+        "typescript": "^4.2.3"
     }
 }

@@ -141,7 +141,7 @@ describe('#parse', () => {
             expect(tree.root.kind).to.be.equal(PARALLEL);
             expect(tree.root.line).to.be.equal(1, 'line number');
             /** @type {Parallel} */
-            let actualParallel = tree.root;
+            const actualParallel = "successCount" in tree.root ? tree.root : undefined;
             expect(actualParallel.successCount).to.be.equal(count);
         });
 
