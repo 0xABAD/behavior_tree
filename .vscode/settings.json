@@ -1,3 +1,4 @@
 {
-    "eslint.lintTask.options": "--no-eslintrc ."
+    "eslint.lintTask.options": "--no-eslintrc .",
+    "WhiteSource Advise.Diff.BaseBranch": "master"
 }
